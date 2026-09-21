@@ -1,0 +1,7 @@
+
+{
+    "cmake.useCMakePresets": "always",
+    "cmake.modifyLists.addNewSourceFiles": "no",
+    "cmake.configureOnEdit": true,
+    "cmake.configureOnOpen": false
+}

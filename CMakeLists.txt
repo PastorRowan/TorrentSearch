@@ -14,12 +14,27 @@ find_package(Qt6 REQUIRED COMPONENTS
 
 qt_standard_project_setup(REQUIRES 6.5)
 
+set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(HEADERS
-
+    "${INCLUDE_DIR}/networking/NetworkManager.h"
+    "${INCLUDE_DIR}/providers/EZTVProvider.h"
+    "${INCLUDE_DIR}/providers/PirateBayProvider.h"
+    "${INCLUDE_DIR}/providers/TorrentProvider.h"
+    "${INCLUDE_DIR}/providers/TorrentProviderManager.h"
+    "${INCLUDE_DIR}/search/TorrentSearchResult.h"
+    "${INCLUDE_DIR}/search/TorrentSearchResults.h"
 )
 
+set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(SOURCES
-    src/main.cpp
+    "${SRC_DIR}/networking/NetworkManager.cpp"
+    "${SRC_DIR}/providers/EZTVProvider.cpp"
+    "${SRC_DIR}/providers/PirateBayProvider.cpp"
+    "${INCLUDE_DIR}/providers/TorrentProvider.cpp"
+    "${SRC_DIR}/providers/TorrentProviderManager.cpp"
+    "${SRC_DIR}/search/TorrentSearchResult.cpp"
+    "${SRC_DIR}/search/TorrentSearchResults.cpp"
+    "${SRC_DIR}/main.cpp"
 )
 
 qt_add_executable(TorrentSearch
@@ -40,6 +55,11 @@ qt_add_qml_module(TorrentSearch
     # RESOURCES
         # img/world.png
 
+)
+
+target_include_directories(TorrentSearch
+    PRIVATE
+        "${INCLUDE_DIR}"
 )
 
 target_link_libraries(TorrentSearch

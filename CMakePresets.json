@@ -1,0 +1,18 @@
+
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "TorrentSearch",
+            "generator": "Ninja",
+            "binaryDir": "build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_MAKE_PROGRAM": "C:/ninja/ninja.exe",
+                "CMAKE_C_COMPILER": "C:/msys64/mingw64/bin/gcc.exe",
+                "CMAKE_CXX_COMPILER": "C:/msys64/mingw64/bin/g++.exe",
+                "CMAKE_PREFIX_PATH": "C:/Qt/6.11.1/mingw_64"
+            }
+        }
+    ]
+}
