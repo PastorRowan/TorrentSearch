@@ -6,20 +6,14 @@
 
 struct TorrentSearchResult {
 
-    QString name;
-
-    QString infoHash;
-
-    QUrl magnetUrl;
-    QUrl torrentUrl;
-
-    long long sizeBytes = 0;
-
-    int seeders = 0;
+    QString name = "";
+    QString infoHash = "";
     int leechers = 0;
-
-    QString category;
-
-    QString source;
+    int seeders = 0;
+    long long sizeBytes = 0;
+    int numberOfFiles = 0;
+    QString magnetUrl = "";
+    QString torrentUrl = "";
+    QString toQString() const;
 
 };

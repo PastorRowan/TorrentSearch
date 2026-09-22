@@ -8,9 +8,7 @@ QString TorrentSearchResults::toQString() const {
 
     for (auto cit = cbegin(); cit != cend(); ++cit) {
         const TorrentSearchResult& torrentSearchResult = *cit;
-        output += "\n\tName: " + torrentSearchResult.name;
-        output += "\n\tMagnet url: " + torrentSearchResult.magnetUrl.toDisplayString();
-        output += "\n";
+        output += "\nName: " + torrentSearchResult.toQString();
     };
 
     return output;
