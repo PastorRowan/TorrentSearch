@@ -1,5 +1,18 @@
 
-#include <QVector>
-#include "search/TorrentSearchResult.h"
+#pragma once
 
-using TorrentSearchResults = std::QVector<TorrentSearchResult>;
+#include "search/TorrentSearchResult.h"
+#include <QVector>
+class QString;
+
+class TorrentSearchResults : public QVector<TorrentSearchResult> {
+
+    private:
+
+    protected:
+
+    public:
+
+        QString toQString() const;
+
+};

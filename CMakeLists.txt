@@ -10,13 +10,13 @@ find_package(Qt6 REQUIRED COMPONENTS
     Quick
     Qml
     QuickControls2
+    Network
 )
 
 qt_standard_project_setup(REQUIRES 6.5)
 
 set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(HEADERS
-    "${INCLUDE_DIR}/networking/NetworkManager.h"
     "${INCLUDE_DIR}/providers/EZTVProvider.h"
     "${INCLUDE_DIR}/providers/PirateBayProvider.h"
     "${INCLUDE_DIR}/providers/TorrentProvider.h"
@@ -27,7 +27,6 @@ set(HEADERS
 
 set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(SOURCES
-    "${SRC_DIR}/networking/NetworkManager.cpp"
     "${SRC_DIR}/providers/EZTVProvider.cpp"
     "${SRC_DIR}/providers/PirateBayProvider.cpp"
     "${INCLUDE_DIR}/providers/TorrentProvider.cpp"
@@ -67,6 +66,7 @@ target_link_libraries(TorrentSearch
         Qt6::Quick
         Qt6::Qml
         Qt6::QuickControls2
+        Qt6::Network
 )
 
 message(STATUS "SOURCE DIR: ${CMAKE_SOURCE_DIR}")

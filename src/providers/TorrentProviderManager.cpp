@@ -1,9 +1,28 @@
 
 #include "providers/TorrentProviderManager.h"
+#include <QNetworkAccessManager>
+#include <QString>
+#include <QDebug>
 
 TorrentProviderManager::TorrentProviderManager(
-    QObject* parent = nullptr
-): QObject(parent) {
+    QObject* parent
+):
+    QObject(parent),
+    networkAccessManager(new QNetworkAccessManager(this)),
+    searchId(0),
+    torrentProviders({}),
+    torrentSearchResults({}) {
+
+    for (const TorrentProviderFactory& torrentProviderFactory : providerFactories) {
+        TorrentProvider* torrentProvider = torrentProviderFactory(networkAccessManager, this);
+        connect(
+            torrentProvider,
+            &TorrentProvider::searchCompleted,
+            this,
+            &TorrentProviderManager::providerSearchCompleted
+        );
+        torrentProviders.push_back(torrentProvider);
+    };
 
 };
 
@@ -17,6 +36,10 @@ void TorrentProviderManager::setSearchId(
     searchId = newSearchId;
 };
 
+void TorrentProviderManager::incrementSearchId() {
+    searchId++;
+};
+
 unsigned int TorrentProviderManager::generateSearchId() {
     searchId++;
     return searchId;
@@ -24,19 +47,48 @@ unsigned int TorrentProviderManager::generateSearchId() {
 
 void TorrentProviderManager::search(
     const QString &query
-) const {
+) {
 
-    TorrentSearchResults torrentSearchResults = {};
+    qDebug().noquote() << "TorrentProviderManager::search called with query '" << query << "'";
+
+    incrementSearchId();
+
+    torrentSearchResults.clear();
+
+    emit searchResultsUpdated(torrentSearchResults);
 
     for (const auto& torrentProvider : torrentProviders) {
 
         torrentProvider->search(
-            generateSearchId(),
+            getSearchId(),
             query
         );
 
     };
 
-    emit searchCompleted(torrentSearchResults);
+};
+
+void TorrentProviderManager::providerSearchCompleted(
+    const unsigned int searchId,
+    const TorrentSearchResults& providerSearchResults
+) {
+
+    qDebug().noquote()
+        << "TorrentProviderManager::providerSearchCompleted slot called with\n"
+        << "searchId: " << searchId << '\n'
+    ;
+
+    if (searchId != getSearchId()) {
+        return;
+    };
+
+    torrentSearchResults.append(providerSearchResults);
+
+    qDebug().noquote()
+        << "torrentSearchResults after update:\n"
+        << torrentSearchResults.toQString()
+    ;
+
+    emit searchResultsUpdated(torrentSearchResults);
 
 };

@@ -1,15 +1,29 @@
 
+#pragma once
+
 #include "providers/TorrentProvider.h"
 
 class PirateBayProvider : public TorrentProvider {
 
+    private:
+
+    protected:
+
+        QUrl createSearchUrl(
+            const QString& query
+        ) override;
+
+        TorrentSearchResults parseResponse(
+            const QByteArray& response
+        ) override;
+
     public:
 
-        explicit PirateBayProvider(QObject* parent = nullptr);
+        explicit PirateBayProvider(
+            QNetworkAccessManager* networkAccessManagerP,
+            QObject* parent = nullptr
+        );
 
-        void search(
-            const unsigned int searchId,
-            const QString& query
-        ) const override;
+        QString getName() const override;
 
 };
