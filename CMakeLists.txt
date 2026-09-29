@@ -22,17 +22,21 @@ set(HEADERS
     "${INCLUDE_DIR}/providers/TorrentProvider.h"
     "${INCLUDE_DIR}/providers/TorrentProviderManager.h"
     "${INCLUDE_DIR}/search/TorrentSearchResult.h"
+    "${INCLUDE_DIR}/search/TorrentSearchResultModel.h"
     "${INCLUDE_DIR}/search/TorrentSearchResults.h"
+    "${INCLUDE_DIR}/search/TorrentSearchResultsModel.h"
 )
 
 set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(SOURCES
     "${SRC_DIR}/providers/EZTVProvider.cpp"
     "${SRC_DIR}/providers/PirateBayProvider.cpp"
-    "${INCLUDE_DIR}/providers/TorrentProvider.cpp"
+    "${SRC_DIR}/providers/TorrentProvider.cpp"
     "${SRC_DIR}/providers/TorrentProviderManager.cpp"
     "${SRC_DIR}/search/TorrentSearchResult.cpp"
+    "${SRC_DIR}/search/TorrentSearchResultModel.cpp"
     "${SRC_DIR}/search/TorrentSearchResults.cpp"
+    "${SRC_DIR}/search/TorrentSearchResultsModel.cpp"
     "${SRC_DIR}/main.cpp"
 )
 
@@ -47,7 +51,7 @@ qt_add_qml_module(TorrentSearch
     VERSION 1.0
 
     QML_FILES
-        resources/qml/components/TorrentSearchResult.qml
+        resources/qml/components/TorrentSearchResultsView.qml
         resources/qml/pages/SearchPage.qml
         resources/qml/Main.qml
 
@@ -67,6 +71,12 @@ target_link_libraries(TorrentSearch
         Qt6::Qml
         Qt6::QuickControls2
         Qt6::Network
+)
+
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/bin/windows/aria2c.exe"
+    "${CMAKE_CURRENT_BINARY_DIR}/windows/aria2c.exe"
+    COPYONLY
 )
 
 message(STATUS "SOURCE DIR: ${CMAKE_SOURCE_DIR}")

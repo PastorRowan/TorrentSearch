@@ -1,6 +1,4 @@
 
-#pragma once
-
 #include "TorrentSearchResult.h"
 
 QString TorrentSearchResult::toQString() const {

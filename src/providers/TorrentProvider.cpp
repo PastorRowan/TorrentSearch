@@ -62,6 +62,17 @@ void TorrentProvider::onNetworkReplyFinished(
     QNetworkReply* reply
 ) {
 
+    qDebug().noquote()
+        << "TorrentProvider::onNetworkReplyFinished called with\n"
+        << "searchId: " << searchId << "\n"
+        << "reply:\n"
+        << "request url: " << reply->request().url().toString() << "\n"
+        << "HTTP status: " << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) << "\n"
+        << "Error: " << reply->error() << "\n"
+        << "Error string: " << reply->errorString() << "\n"
+        << "response:\n" << reply->readAll()
+    ;
+
     if (reply != networkReply) {
         reply->deleteLater();
         return;
@@ -79,7 +90,7 @@ void TorrentProvider::onNetworkReplyFinished(
 
     emit searchCompleted(searchId, results);
 
-}
+};
 
 void TorrentProvider::search(
     const unsigned int searchId,

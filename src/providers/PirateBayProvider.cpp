@@ -58,7 +58,8 @@ TorrentSearchResults PirateBayProvider::parseResponse(
         result.leechers = object["leechers"].toInt();
 
         results.append(result);
-    }
+
+    };
 
     return results;
 

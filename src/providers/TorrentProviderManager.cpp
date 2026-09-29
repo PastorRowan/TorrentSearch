@@ -84,11 +84,6 @@ void TorrentProviderManager::providerSearchCompleted(
 
     torrentSearchResults.append(providerSearchResults);
 
-    qDebug().noquote()
-        << "torrentSearchResults after update:\n"
-        << torrentSearchResults.toQString()
-    ;
-
     emit searchResultsUpdated(torrentSearchResults);
 
 };

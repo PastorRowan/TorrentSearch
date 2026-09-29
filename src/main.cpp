@@ -1,9 +1,12 @@
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
 #include <QQuickStyle>
+#include <QVariant>
 
 #include "providers/TorrentProviderManager.h"
+#include "search/TorrentSearchResultsModel.h"
 
 int main(int argc, char *argv[]) {
 
@@ -13,11 +16,29 @@ int main(int argc, char *argv[]) {
 
     QQmlApplicationEngine engine;
 
-    engine.loadFromModule("TorrentSearch", "Main");
-
     TorrentProviderManager torrentProviderManager;
 
-    torrentProviderManager.search("ubuntu");
+    TorrentSearchResultsModel searchPageTorrentSearchResultsModel;
+
+    QObject::connect(
+        &torrentProviderManager,
+        &TorrentProviderManager::searchResultsUpdated,
+        &searchPageTorrentSearchResultsModel,
+        &TorrentSearchResultsModel::setResults
+    );
+
+    engine.rootContext()->setContextProperties({
+        {
+            "torrentProviderManager",
+            QVariant::fromValue(&torrentProviderManager)
+        },
+        {
+            "searchPageTorrentSearchResultsModel",
+            QVariant::fromValue(&searchPageTorrentSearchResultsModel)
+        }
+    });
+
+    engine.loadFromModule("TorrentSearch", "Main");
 
     return app.exec();
 
