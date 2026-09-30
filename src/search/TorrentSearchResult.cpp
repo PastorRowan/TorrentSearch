@@ -2,8 +2,7 @@
 #include "TorrentSearchResult.h"
 
 QString TorrentSearchResult::toQString() const {
-
-    QString output =
+    return
         "name: " + name +
         "infoHash: " + infoHash +
         "leechers: " + QString::number(leechers) +
@@ -13,7 +12,4 @@ QString TorrentSearchResult::toQString() const {
         "magnetUrl: " + magnetUrl +
         "torrentUrl: " + torrentUrl
     ;
-
-    return output;
-
 };

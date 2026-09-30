@@ -23,6 +23,10 @@ int main(int argc, char *argv[]) {
 
     // TorrentDownloadManager torrentDownloadManager
 
+    // TorrentDownloadsModel torrentDownloadsModel
+
+    // QObject::connect( somehow connect them?
+
     QObject::connect(
         &torrentSearchManager,
         &TorrentSearchManager::searchResultsUpdated,
