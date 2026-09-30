@@ -16,14 +16,12 @@ class TorrentSearchResultsModel : public QAbstractListModel {
 
         TorrentSearchResults torrentSearchResults;
 
+    protected:
+
     public:
 
         enum Roles {
-            NameRole = Qt::UserRole + 1,
-            MagnetUrlRole,
-            SizeRole,
-            SeedersRole,
-            LeechersRole
+            TorrentSearchResultRole = Qt::UserRole + 1
         };
 
         explicit TorrentSearchResultsModel(

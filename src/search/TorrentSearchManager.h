@@ -5,27 +5,27 @@
 #include <QVector>
 class QNetworkAccessManager;
 class QString;
-#include "providers/TorrentProvider.h"
-#include "providers/EZTVProvider.h"
-#include "providers/PirateBayProvider.h"
+#include "search/TorrentSearch.h"
+#include "search/EZTVSearch.h"
+#include "search/PirateBaySearch.h"
 #include "search/TorrentSearchResults.h"
 
-using TorrentProviderFactory = std::function<TorrentProvider*(QNetworkAccessManager*, QObject*)>;
+using TorrentSearchFactory = std::function<TorrentSearch*(QNetworkAccessManager*, QObject*)>;
 
-const QVector<TorrentProviderFactory> providerFactories = {
+const QVector<TorrentSearchFactory> providerFactories = {
     /*
     [](QNetworkAccessManager* networkAccessManager, QObject* parent) {
-        return new EZTVProvider(networkAccessManager, parent);
+        return new EZTVSearch(networkAccessManager, parent);
     },
     */
     [](QNetworkAccessManager* networkAccessManager, QObject* parent) {
-        return new PirateBayProvider(networkAccessManager, parent);
+        return new PirateBaySearch(networkAccessManager, parent);
     }
 };
 
-using TorrentProviders = QVector<TorrentProvider*>;
+using TorrentSearchs = QVector<TorrentSearch*>;
 
-class TorrentProviderManager : public QObject {
+class TorrentSearchManager : public QObject {
 
     Q_OBJECT
 
@@ -33,7 +33,7 @@ class TorrentProviderManager : public QObject {
 
         QNetworkAccessManager* networkAccessManager;
 
-        TorrentProviders torrentProviders;
+        TorrentSearchs torrentSearchs;
 
         TorrentSearchResults torrentSearchResults;
 
@@ -49,9 +49,11 @@ class TorrentProviderManager : public QObject {
 
         unsigned int generateSearchId();
 
+    protected:
+
     public:
 
-        explicit TorrentProviderManager(QObject* parent = nullptr);
+        explicit TorrentSearchManager(QObject* parent = nullptr);
 
         Q_INVOKABLE void search(const QString &query);
 

@@ -7,11 +7,31 @@ ListView {
 
     id: root
 
-    signal downloadRequested(string name, string magnetUrl)
+    property var selectedSearchResults: [];
 
-    Layout.fillWidth: true
-    Layout.fillHeight: true
-    clip: true
+    function toggleSelection(torrentSearchResult) {
+
+        // Loop over selected search results
+        for (let i = 0; i < selectedSearchResults.length; ++i) {
+            // If toggled search result is already in selectedSearchResults
+            // Then remove the search result and notify of state change
+            if (selectedSearchResults[i].magnetUrl === torrentSearchResult.magnetUrl) {
+                selectedSearchResults.splice(i, 1);
+                selectedSearchResultsChanged();
+                return;
+            };
+        };
+
+        // Otherwise, add the new search result into selected search results
+        // and notify of state change
+        selectedSearchResults.push(torrentSearchResult);
+        selectedSearchResultsChanged();
+
+    }
+
+    Layout.fillWidth: true;
+    Layout.fillHeight: true;
+    clip: true;
 
     header: Rectangle {
 
@@ -41,7 +61,7 @@ ListView {
             Label {
                 Layout.preferredWidth: 80
                 horizontalAlignment: Text.AlignRight
-                text: "Seeders"
+                text: "Peers"
                 font.bold: true
             }
 
@@ -53,7 +73,19 @@ ListView {
 
         width: root.width
         height: 48
-        color: index % 2 === 0 ? "#ffffff" : "#f7f7f7"
+
+        property bool selected: {
+            for (const result of root.selectedSearchResults) {
+                if (result.magnetUrl === torrentSearchResult.magnetUrl) {
+                    return true;
+                };
+            };
+            return false;
+        }
+
+        color: selected
+            ? "#cce5ff"
+            : (index % 2 === 0 ? "#ffffff" : "#f7f7f7")
 
         RowLayout {
 
@@ -64,25 +96,34 @@ ListView {
 
             Label {
                 Layout.fillWidth: true
-                text: name
+                text: torrentSearchResult.name
                 elide: Text.ElideRight
             }
 
             Label {
                 Layout.preferredWidth: 100
-                text: size
+                text: torrentSearchResult.sizeBytes
             }
 
             Label {
                 Layout.preferredWidth: 80
                 horizontalAlignment: Text.AlignRight
-                text: seeders
+                text: torrentSearchResult.seeders + torrentSearchResult.leechers
             }
 
-            Button {
-                Layout.preferredWidth: 40
-                Layout.fillHeight:true
-                onClicked: console.log("Download: ", name, magnetUrl)
+        }
+
+        MouseArea {
+
+            id: mouseArea
+
+            anchors.fill: parent
+            hoverEnabled: true
+
+            onClicked: {
+                console.log("calling root.toggleSelection with");
+                console.log(`torrentSearchResult:\n${torrentSearchResult}`);
+                root.toggleSelection(torrentSearchResult);
             }
 
         }

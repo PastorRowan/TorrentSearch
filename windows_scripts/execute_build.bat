@@ -3,6 +3,6 @@
 
 pushd "%~dp0.."
 
-cmake --build build
+cmake --build build --parallel
 
 popd

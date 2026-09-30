@@ -5,8 +5,9 @@
 #include <QQuickStyle>
 #include <QVariant>
 
-#include "providers/TorrentProviderManager.h"
+#include "search/TorrentSearchManager.h"
 #include "search/TorrentSearchResultsModel.h"
+// #include "download/TorrentDownloadManager.h"
 
 int main(int argc, char *argv[]) {
 
@@ -16,26 +17,34 @@ int main(int argc, char *argv[]) {
 
     QQmlApplicationEngine engine;
 
-    TorrentProviderManager torrentProviderManager;
+    TorrentSearchManager torrentSearchManager;
 
     TorrentSearchResultsModel searchPageTorrentSearchResultsModel;
 
+    // TorrentDownloadManager torrentDownloadManager
+
     QObject::connect(
-        &torrentProviderManager,
-        &TorrentProviderManager::searchResultsUpdated,
+        &torrentSearchManager,
+        &TorrentSearchManager::searchResultsUpdated,
         &searchPageTorrentSearchResultsModel,
         &TorrentSearchResultsModel::setResults
     );
 
     engine.rootContext()->setContextProperties({
         {
-            "torrentProviderManager",
-            QVariant::fromValue(&torrentProviderManager)
+            "torrentSearchManager",
+            QVariant::fromValue(&torrentSearchManager)
         },
         {
             "searchPageTorrentSearchResultsModel",
             QVariant::fromValue(&searchPageTorrentSearchResultsModel)
+        },
+        /*
+        {
+            "torrentDownloadManager",
+            QVariant::fromValue()
         }
+        */
     });
 
     engine.loadFromModule("TorrentSearch", "Main");

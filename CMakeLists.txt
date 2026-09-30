@@ -17,10 +17,12 @@ qt_standard_project_setup(REQUIRES 6.5)
 
 set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(HEADERS
-    "${INCLUDE_DIR}/providers/EZTVProvider.h"
-    "${INCLUDE_DIR}/providers/PirateBayProvider.h"
-    "${INCLUDE_DIR}/providers/TorrentProvider.h"
-    "${INCLUDE_DIR}/providers/TorrentProviderManager.h"
+    "${INCLUDE_DIR}/download/TorrentDownloadData.h"
+    "${INCLUDE_DIR}/download/TorrentDownloadManager.h"
+    "${INCLUDE_DIR}/search/EZTVSearch.h"
+    "${INCLUDE_DIR}/search/PirateBaySearch.h"
+    "${INCLUDE_DIR}/search/TorrentSearch.h"
+    "${INCLUDE_DIR}/search/TorrentSearchManager.h"
     "${INCLUDE_DIR}/search/TorrentSearchResult.h"
     "${INCLUDE_DIR}/search/TorrentSearchResultModel.h"
     "${INCLUDE_DIR}/search/TorrentSearchResults.h"
@@ -29,10 +31,12 @@ set(HEADERS
 
 set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(SOURCES
-    "${SRC_DIR}/providers/EZTVProvider.cpp"
-    "${SRC_DIR}/providers/PirateBayProvider.cpp"
-    "${SRC_DIR}/providers/TorrentProvider.cpp"
-    "${SRC_DIR}/providers/TorrentProviderManager.cpp"
+    "${SRC_DIR}/download/TorrentDownloadData.cpp"
+    "${SRC_DIR}/download/TorrentDownloadManager.cpp"
+    "${SRC_DIR}/search/EZTVSearch.cpp"
+    "${SRC_DIR}/search/PirateBaySearch.cpp"
+    "${SRC_DIR}/search/TorrentSearch.cpp"
+    "${SRC_DIR}/search/TorrentSearchManager.cpp"
     "${SRC_DIR}/search/TorrentSearchResult.cpp"
     "${SRC_DIR}/search/TorrentSearchResultModel.cpp"
     "${SRC_DIR}/search/TorrentSearchResults.cpp"

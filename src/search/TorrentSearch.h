@@ -9,7 +9,7 @@ class QUrl;
 class QByteArray;
 #include "search/TorrentSearchResults.h"
 
-class TorrentProvider : public QObject {
+class TorrentSearch : public QObject {
 
     Q_OBJECT
 
@@ -51,7 +51,7 @@ class TorrentProvider : public QObject {
 
     public:
 
-        explicit TorrentProvider(
+        explicit TorrentSearch(
             QNetworkAccessManager* networkAccessManagerP,
             QObject* parent = nullptr
         );

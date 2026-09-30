@@ -11,9 +11,6 @@ Page {
 
     title: "Search"
 
-    property string selectedMagnetUrl: ""
-    property string selectedTorrentName: ""
-
     ColumnLayout {
 
         anchors.fill: parent
@@ -36,7 +33,7 @@ Page {
             placeholderText: "Search torrents..."
 
             onAccepted: {
-                torrentProviderManager.search(text)
+                torrentSearchManager.search(text)
             }
 
         }
@@ -46,12 +43,6 @@ Page {
             id: torrentSearchResultsView
 
             model: searchPageTorrentSearchResultsModel
-
-            onDownloadRequested: function(name, magnetUrl) {
-                root.selectedTorrentName = name
-                root.selectedMagnetUrl = magnetUrl
-                downloadDialog.open()
-            }
 
         }
 
@@ -74,7 +65,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: root.selectedTorrentName
+                text: "This is a label"
                 wrapMode: Text.Wrap
             }
 
@@ -87,7 +78,7 @@ Page {
 
         /*
         onAccepted: {
-            torrentProviderManager.download(root.selectedMagnetUrl)
+            torrentDownloadManager.download(root.selectedMagnetUrl)
         }
         */
 

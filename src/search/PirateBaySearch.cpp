@@ -1,5 +1,6 @@
 
-#include "providers/PirateBayProvider.h"
+#include "search/PirateBaySearch.h"
+
 #include <QUrl>
 #include <QUrlQuery>
 #include <QJsonDocument>
@@ -7,14 +8,20 @@
 #include <QJsonObject>
 #include <Qstring>
 
-PirateBayProvider::PirateBayProvider(
+#define USE_MOCK_RESPONSE 1
+
+#if USE_MOCK_RESPONSE
+    #include <QFile>
+#endif
+
+PirateBaySearch::PirateBaySearch(
     QNetworkAccessManager* networkAccessManagerP,
     QObject* parent
-): TorrentProvider(networkAccessManagerP, parent) {
+): TorrentSearch(networkAccessManagerP, parent) {
 
 };
 
-QUrl PirateBayProvider::createSearchUrl(
+QUrl PirateBaySearch::createSearchUrl(
     const QString& query
 ) {
 
@@ -31,13 +38,23 @@ QUrl PirateBayProvider::createSearchUrl(
 
 };
 
-TorrentSearchResults PirateBayProvider::parseResponse(
+TorrentSearchResults PirateBaySearch::parseResponse(
     const QByteArray& response
 ) {
 
     TorrentSearchResults results = {};
 
     QJsonDocument document = QJsonDocument::fromJson(response);
+
+    #if USE_MOCK_RESPONSE
+
+        QFile file("PirateBaySearchResponse.json");
+
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            document = QJsonDocument::fromJson(file.readAll());
+        };
+
+    #endif
 
     if (!document.isArray()) {
         return results;
@@ -57,6 +74,8 @@ TorrentSearchResults PirateBayProvider::parseResponse(
         result.seeders = object["seeders"].toInt();
         result.leechers = object["leechers"].toInt();
 
+        result.magnetUrl = QString("magnet:?xt=urn:btih:%1").arg(result.infoHash);
+
         results.append(result);
 
     };
@@ -65,6 +84,6 @@ TorrentSearchResults PirateBayProvider::parseResponse(
 
 };
 
-QString PirateBayProvider::getName() const {
-    return "PirateBayProvider";
+QString PirateBaySearch::getName() const {
+    return "PirateBaySearch";
 };

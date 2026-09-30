@@ -1,12 +1,12 @@
 
-#include "providers/TorrentProvider.h"
+#include "search/TorrentSearch.h"
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QString>
 #include <QUrl>
 #include <QDebug>
 
-TorrentProvider::TorrentProvider(
+TorrentSearch::TorrentSearch(
     QNetworkAccessManager* networkAccessManagerP,
     QObject* parent
 ):
@@ -16,21 +16,21 @@ TorrentProvider::TorrentProvider(
 
 };
 
-QNetworkAccessManager* TorrentProvider::getNetworkAccessManager() {
+QNetworkAccessManager* TorrentSearch::getNetworkAccessManager() {
     return networkAccessManager;
 };
 
-void TorrentProvider::setNetworkAccessManager(
+void TorrentSearch::setNetworkAccessManager(
     QNetworkAccessManager* newNetworkAccessManager
 ) {
     networkAccessManager = newNetworkAccessManager;
 };
 
-QNetworkReply* TorrentProvider::getNetworkReply() {
+QNetworkReply* TorrentSearch::getNetworkReply() {
     return networkReply;
 };
 
-void TorrentProvider::setNetworkReply(
+void TorrentSearch::setNetworkReply(
     const unsigned int searchId,
     QNetworkReply* newNetworkReply
 ) {
@@ -48,7 +48,7 @@ void TorrentProvider::setNetworkReply(
 
 };
 
-void TorrentProvider::cancelSearch() {
+void TorrentSearch::cancelSearch() {
     if (networkReply == nullptr) {
         return;
     };
@@ -57,20 +57,20 @@ void TorrentProvider::cancelSearch() {
     networkReply = nullptr;
 };
 
-void TorrentProvider::onNetworkReplyFinished(
+void TorrentSearch::onNetworkReplyFinished(
     const unsigned int searchId,
     QNetworkReply* reply
 ) {
 
     qDebug().noquote()
-        << "TorrentProvider::onNetworkReplyFinished called with\n"
+        << "TorrentSearch::onNetworkReplyFinished called with\n"
         << "searchId: " << searchId << "\n"
         << "reply:\n"
         << "request url: " << reply->request().url().toString() << "\n"
         << "HTTP status: " << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) << "\n"
         << "Error: " << reply->error() << "\n"
-        << "Error string: " << reply->errorString() << "\n"
-        << "response:\n" << reply->readAll()
+        << "Error string: " << reply->errorString() // << "\n"
+        // << "response:\n" << reply->readAll()
     ;
 
     if (reply != networkReply) {
@@ -92,13 +92,13 @@ void TorrentProvider::onNetworkReplyFinished(
 
 };
 
-void TorrentProvider::search(
+void TorrentSearch::search(
     const unsigned int searchId,
     const QString& query
 ) {
 
     qDebug().noquote()
-        << "torrentProvider '" << getName() << "' called with\n"
+        << "torrentSearch '" << getName() << "' called with\n"
         << "searchId: " << searchId << "\n"
         << "query: " << query
     ;

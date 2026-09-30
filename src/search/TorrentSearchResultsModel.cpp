@@ -17,10 +17,9 @@ TorrentSearchResultsModel::TorrentSearchResultsModel(
 
 QHash<int, QByteArray> TorrentSearchResultsModel::roleNames() const {
     return {
-        { NameRole, "name" },
-        { MagnetUrlRole, "magnetUrl" },
-        { SizeRole, "size" },
-        { SeedersRole, "seeders" }
+        {
+            TorrentSearchResultRole, "torrentSearchResult"
+        }
     };
 };
 
@@ -37,20 +36,8 @@ QVariant TorrentSearchResultsModel::data(
 
     switch (role) {
 
-        case NameRole:
-            return result.name;
-
-        case MagnetUrlRole:
-            return result.magnetUrl;
-
-        case SizeRole:
-            return result.sizeBytes;
-
-        case SeedersRole:
-            return result.seeders;
-
-        case LeechersRole:
-            return result.leechers;
+        case TorrentSearchResultRole:
+            return QVariant::fromValue(result);
 
         default:
             return {};
@@ -60,12 +47,6 @@ QVariant TorrentSearchResultsModel::data(
 };
 
 int TorrentSearchResultsModel::rowCount(const QModelIndex &parent) const {
-
-    qDebug().noquote()
-        << "TorrentSearchResultsModel::rowCount called with"
-        << "torrentSearchResults.size(): " << torrentSearchResults.size()
-        << "parent: " << parent
-    ;
 
     if (parent.isValid()) {
         return 0;

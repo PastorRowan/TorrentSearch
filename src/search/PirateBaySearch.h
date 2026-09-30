@@ -1,9 +1,9 @@
 
 #pragma once
 
-#include "providers/TorrentProvider.h"
+#include "search/TorrentSearch.h"
 
-class EZTVProvider : public TorrentProvider {
+class PirateBaySearch : public TorrentSearch {
 
     private:
 
@@ -19,9 +19,9 @@ class EZTVProvider : public TorrentProvider {
 
     public:
 
-        explicit EZTVProvider(
+        explicit PirateBaySearch(
             QNetworkAccessManager* networkAccessManagerP,
-            QObject* parent
+            QObject* parent = nullptr
         );
 
         QString getName() const override;

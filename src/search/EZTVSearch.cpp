@@ -1,19 +1,19 @@
 
-#include "providers/EZTVProvider.h"
+#include "search/EZTVSearch.h"
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QUrl>
 #include <QNetworkReply>
 #include <Qstring>
 
-EZTVProvider::EZTVProvider(
+EZTVSearch::EZTVSearch(
     QNetworkAccessManager* networkAccessManagerP,
     QObject* parent
-): TorrentProvider(networkAccessManagerP, parent) {
+): TorrentSearch(networkAccessManagerP, parent) {
 
 };
 
-QUrl EZTVProvider::createSearchUrl(
+QUrl EZTVSearch::createSearchUrl(
     const QString& query
 ) {
 
@@ -23,12 +23,12 @@ QUrl EZTVProvider::createSearchUrl(
 
 };
 
-TorrentSearchResults EZTVProvider::parseResponse(
+TorrentSearchResults EZTVSearch::parseResponse(
     const QByteArray& response
 ) {
     return {};
 };
 
-QString EZTVProvider::getName() const {
-    return "EZTVProvider";
+QString EZTVSearch::getName() const {
+    return "EZTVSearch";
 };
