@@ -4,33 +4,46 @@
 #include <QMetaEnum>
 
 TorrentDownload::TorrentDownload(
+    TorrentDownloadData dataP,
     QObject* parent
 ):
-    QObject(parent) {
+    QObject(parent),
+    data(dataP) {
 
 };
 
-void TorrentDownload::download() {
+const TorrentDownloadData& TorrentDownload::getData() const {
+    return data;
+};
 
-    status = Status::DownloadStatus;
+void TorrentDownload::setData(
+    const TorrentDownloadData& newData
+) {
+    if (data == newData) {
+        return;
+    };
+    data = newData;
+    emit dataChanged();
+};
+
+QString TorrentDownload::toQString() const {
+    return data.toQString();
+};
+
+void TorrentDownload::resume() {
+
+    data.status = TorrentDownloadData::Status::DownloadingStatus;
 
 };
 
-QString TorrentDownloadData::statusToQString() const {
-    return QMetaEnum::fromType<Status>().valueToKey(static_cast<int>(status));
+void TorrentDownload::pause() {
+
+    data.status = TorrentDownloadData::Status::PausedStatus;
+
 };
 
-QString TorrentDownloadData::toQString() const {
-    return
-        "name: " + name +
-        "infoHash: " + infoHash +
-        "leechers: " + QString::number(leechers) +
-        "seeders: " + QString::number(seeders) +
-        "sizeBytes: " + QString::number(sizeBytes) +
-        "numberOfFiles: " + QString::number(sizeBytes) +
-        "magnetUrl: " + magnetUrl +
-        "torrentUrl: " + torrentUrl +
-        "status: " + statusToQString() +
-        "progress: " + QString::number(progress)
-    ;
+void TorrentDownload::cancel() {
+
+    data.status = TorrentDownloadData::Status::CancelledStatus;
+
 };
