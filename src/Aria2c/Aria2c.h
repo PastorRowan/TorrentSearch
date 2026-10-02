@@ -50,6 +50,7 @@
     X(systemListMethods,         "system.listMethods",          SystemListMethods,          N) \
     X(systemListNotifications,   "system.listNotifications",    SystemListNotifications,    N)
 
+
 // RPC method enum
 #define X(function, method, name, hasParams) name,
 
@@ -63,11 +64,10 @@ enum class RpcMethod {
 // RPC method count
 const unsigned int RPC_METHOD_COUNT = static_cast<unsigned int>(RpcMethod::Count);
 
-unsigned int RpcMethodToUnsignedInt(
+unsigned int rpcMethodToUnsignedInt(
     const RpcMethod method
-) {
-    return static_cast<unsigned int>(method);
-};
+);
+
 
 // RPC method names
 #define X(function, method, name, hasParams) method,
@@ -78,12 +78,10 @@ const QString rpcMethodNames[RPC_METHOD_COUNT] = {
 
 #undef X
 
-
 QString rpcMethodEnumToRpcMethodName(
     const RpcMethod method
-) {
-    return rpcMethodNames[RpcMethodToUnsignedInt(method)];
-};
+);
+
 
 // RPC method parameters concept
 // Checks whether each RPC method parameter has toQJsonArray
@@ -144,16 +142,23 @@ class Aria2c : public QObject {
 
     private:
 
-        QProcess aria2Process;
+        // empty = no token auth (aria2c --rpc-secret not set)
+        QString secret = "my_secret";
 
-        QNetworkAccessManager networkAccessManager;
+        QProcess* aria2cProcess;
+
+        QString aria2cBinFileLocation = "aria2c";
+
+        QStringList aria2Arguments = {
+            "--enable-rpc=true",
+            "--rpc-listen-all=false",
+            "--rpc-listen-port=6800",
+            QString("--rpc-secret=%1").arg(secret)
+        };
+
+        QNetworkAccessManager* networkAccessManager;
 
         QString rpcUrl = "http://127.0.0.1:6800/jsonrpc";
-
-        // empty = no token auth (aria2c --rpc-secret not set)
-        QString secret;
-
-    protected:
 
     public:
 
@@ -168,6 +173,16 @@ class Aria2c : public QObject {
         void setRpcUrl(const QString& u) {
             rpcUrl = u;
         };
+
+        bool isNotRunning() const;
+
+        bool isStarting() const;
+
+        bool isRunning() const;
+
+        void start();
+
+        void stop();
 
         void request(
             const RpcMethod method,
@@ -198,5 +213,13 @@ class Aria2c : public QObject {
         #undef DECLARE_PARAMS_ARG_N
         #undef DECLARE_PARAMS_ARG
         #undef DECLARE_CALLBACK_ARG
+
+    signals:
+
+        void started();
+
+        void stopped();
+
+        void processError();
 
 };

@@ -674,6 +674,7 @@ struct SystemMulticallMethod {
 
 struct SystemMulticallParams {
     QVector<SystemMulticallMethod> methods;
+
     QJsonArray toQJsonArray() const;
 };
 

@@ -317,27 +317,27 @@ Aria2TellStatusResponse Aria2TellStatusResponse::fromQJsonValue(const QJsonValue
     Aria2TellStatusResponse result;
     const QJsonObject obj = value.toObject();
 
-    result.gid                    = obj.value(QStringLiteral("gid")).toString();
-    result.status                 = obj.value(QStringLiteral("status")).toString();
-    result.totalLength            = obj.value(QStringLiteral("totalLength")).toString();
-    result.completedLength        = obj.value(QStringLiteral("completedLength")).toString();
-    result.uploadLength           = obj.value(QStringLiteral("uploadLength")).toString();
-    result.bitfield               = obj.value(QStringLiteral("bitfield")).toString();
-    result.downloadSpeed          = obj.value(QStringLiteral("downloadSpeed")).toString();
-    result.uploadSpeed            = obj.value(QStringLiteral("uploadSpeed")).toString();
-    result.infoHash               = obj.value(QStringLiteral("infoHash")).toString();
-    result.numSeeders             = obj.value(QStringLiteral("numSeeders")).toString();
-    result.seeder                 = obj.value(QStringLiteral("seeder")).toString();
-    result.pieceLength            = obj.value(QStringLiteral("pieceLength")).toString();
-    result.numPieces              = obj.value(QStringLiteral("numPieces")).toString();
-    result.connections            = obj.value(QStringLiteral("connections")).toString();
-    result.errorCode              = obj.value(QStringLiteral("errorCode")).toString();
-    result.errorMessage           = obj.value(QStringLiteral("errorMessage")).toString();
-    result.following              = obj.value(QStringLiteral("following")).toString();
-    result.belongsTo              = obj.value(QStringLiteral("belongsTo")).toString();
-    result.dir                    = obj.value(QStringLiteral("dir")).toString();
-    result.verifiedLength         = obj.value(QStringLiteral("verifiedLength")).toString();
-    result.verifyIntegrityPending = obj.value(QStringLiteral("verifyIntegrityPending")).toString();
+    result.gid                    = obj.value("gid").toString();
+    result.status                 = obj.value("status").toString();
+    result.totalLength            = obj.value("totalLength").toString();
+    result.completedLength        = obj.value("completedLength").toString();
+    result.uploadLength           = obj.value("uploadLength").toString();
+    result.bitfield               = obj.value("bitfield").toString();
+    result.downloadSpeed          = obj.value("downloadSpeed").toString();
+    result.uploadSpeed            = obj.value("uploadSpeed").toString();
+    result.infoHash               = obj.value("infoHash").toString();
+    result.numSeeders             = obj.value("numSeeders").toString();
+    result.seeder                 = obj.value("seeder").toString();
+    result.pieceLength            = obj.value("pieceLength").toString();
+    result.numPieces              = obj.value("numPieces").toString();
+    result.connections            = obj.value("connections").toString();
+    result.errorCode              = obj.value("errorCode").toString();
+    result.errorMessage           = obj.value("errorMessage").toString();
+    result.following              = obj.value("following").toString();
+    result.belongsTo              = obj.value("belongsTo").toString();
+    result.dir                    = obj.value("dir").toString();
+    result.verifiedLength         = obj.value("verifiedLength").toString();
+    result.verifyIntegrityPending = obj.value("verifyIntegrityPending").toString();
 
     const QJsonArray followedByArray = obj.value(QStringLiteral("followedBy")).toArray();
     for (const QJsonValue& gidValue : followedByArray) {

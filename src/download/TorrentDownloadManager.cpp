@@ -1,181 +1,129 @@
 
 #include "download/TorrentDownloadManager.h"
+#include "conversions/conversions.h"
 
-#include <QJsonObject>
-#include <QJsonArray>
-#include <QNetworkReply>
+#include <QDebug>
 
 TorrentDownloadManager::TorrentDownloadManager(
     QObject* parent = nullptr
 ):
     QObject(parent),
-    networkAccessManager(this),
+    aria2c(new Aria2c(this)),
+    statusTimer(new QTimer(this)),
     torrentDownloads({}) {
 
-    aria2Process.start(
-        "aria2c",
-        {
-            "--enable-rpc=true",
-            "--rpc-listen-all=false",
-            "--rpc-listen-port=6800",
-            "--rpc-secret=mySecret"
-        }
-    );
-
     connect(
-        &aria2Process,
-        &QProcess::started,
+        aria2c,
+        &Aria2c::started,
         this,
-        [] {
-            qDebug() << "aria2c QProcess started";
-        }
+        &TorrentDownloadManager::onAria2cStarted
     );
 
     connect(
-        &aria2Process,
-        &QProcess::errorOccurred,
-        this,
-        [](QProcess::ProcessError error) {
-            qDebug() << "aria2c error:" << error;
-        }
-    );
-
-    connect(
-        &statusTimer,
+        statusTimer,
         &QTimer::timeout,
         this,
         &TorrentDownloadManager::pollDownloadStatuses
     );
 
-    statusTimer.start(1000);
+    connect(
+        this,
+        &TorrentDownloadManager::aria2cTellStatusResponses,
+        this,
+        &TorrentDownloadManager::onAria2cTellStatusResponses
+    );
 
-};
-
-void TorrentDownloadManager::requestAria2c(
-    const QString& method,
-    const QJsonArray& params,
-    std::function<void(QNetworkReply*)> callback
-) {
+    aria2c->start();
 
 };
 
 void TorrentDownloadManager::pollDownloadStatuses() {
 
-    requestAria2c(
-        ""
-    );
-
-    QJsonObject request{
-        { "jsonrpc", "2.0" },
-        { "id", "status" },
-        { "method", "aria2.tellActive" },
-        { "params", QJsonArray{
-            "token:mySecret"
-        }}
+    if (!aria2c->isRunning()) {
+        return;
     };
 
-    QNetworkRequest networkRequest(
-        QUrl("http://127.0.0.1:6800/jsonrpc")
-    );
+    aria2c->aria2TellActive(
+        [ this ](std::variant<Aria2TellActiveResponse, Aria2Error> response) {
 
-    networkRequest.setHeader(
-        QNetworkRequest::ContentTypeHeader,
-        "application/json"
-    );
+            if (auto* err = std::get_if<Aria2Error>(&response)) {
+                qDebug() << "Failed to run method 'aria2TellActive': " << err->message;
+            } else if (auto* result = std::get_if<Aria2TellActiveResponse>(&response)) {
+                // result
+                emit aria2cTellStatusResponses(result->downloads);
+            } else {
+                qFatal() << "Error: 'aria2TellActive' responded with a unknown type";
+            };
 
-    QNetworkReply* reply =
-        networkAccessManager.post(
-            networkRequest,
-            QJsonDocument(request).toJson(QJsonDocument::Compact)
-        );
-
-    connect(
-        reply,
-        &QNetworkReply::finished,
-        this,
-        [this, reply]()
-        {
-            // parse response
-            // update downloads
-
-            reply->deleteLater();
         }
     );
 
-    QJsonObject request{
-        { "jsonrpc", "2.0" },
-        { "id", "status" },
-        { "method", "aria2.tellStopped" },
-        { "params", QJsonArray{
-            "token:mySecret"
-        }}
-    };
-
-    QNetworkRequest networkRequest(
-        QUrl("http://127.0.0.1:6800/jsonrpc")
-    );
-
-    networkRequest.setHeader(
-        QNetworkRequest::ContentTypeHeader,
-        "application/json"
-    );
-
-    QNetworkReply* reply =
-        networkAccessManager.post(
-            networkRequest,
-            QJsonDocument(request).toJson(QJsonDocument::Compact)
-        );
-
-    connect(
-        reply,
-        &QNetworkReply::finished,
-        this,
-        [this, reply]()
+    aria2c->aria2TellStopped(
         {
-            // parse response
-            // update downloads
+            .offset = 0,
+            .num = torrentDownloads.size() * 2
+        },
+        [ this ](std::variant<Aria2TellStoppedResponse, Aria2Error> response) {
 
-            reply->deleteLater();
+            if (auto* err = std::get_if<Aria2Error>(&response)) {
+                qDebug() << "Failed to run method 'aria2TellActive': " << err->message;
+            } else if (auto* result = std::get_if<Aria2TellStoppedResponse>(&response)) {
+                emit aria2cTellStatusResponses(result->downloads);
+            } else {
+                qFatal() << "Error: 'aria2TellStopped' responded with a unknown type";
+            };
+
         }
     );
 
-    QJsonObject request{
-        { "jsonrpc", "2.0" },
-        { "id", "status" },
-        { "method", "aria2.tellWaiting" },
-        { "params", QJsonArray{
-            "token:mySecret"
-        }}
-    };
-
-    QNetworkRequest networkRequest(
-        QUrl("http://127.0.0.1:6800/jsonrpc")
-    );
-
-    networkRequest.setHeader(
-        QNetworkRequest::ContentTypeHeader,
-        "application/json"
-    );
-
-    QNetworkReply* reply =
-        networkAccessManager.post(
-            networkRequest,
-            QJsonDocument(request).toJson(QJsonDocument::Compact)
-        );
-
-    connect(
-        reply,
-        &QNetworkReply::finished,
-        this,
-        [this, reply]()
+    aria2c->aria2TellWaiting(
         {
-            // parse response
-            // update downloads
+            .offset = 0,
+            .num = torrentDownloads.size() * 2
+        },
+        [ this ](std::variant<Aria2TellWaitingResponse, Aria2Error> response) {
 
-            reply->deleteLater();
+            if (auto* err = std::get_if<Aria2Error>(&response)) {
+                qDebug() << "Failed to run method 'aria2TellWaiting': " << err->message;
+            } else if (auto* result = std::get_if<Aria2TellWaitingResponse>(&response)) {
+                emit aria2cTellStatusResponses(result->downloads);
+            } else {
+                qFatal() << "Error: 'aria2TellWaiting' responded with a unknown type";
+            };
+
         }
     );
 
+};
+
+void TorrentDownloadManager::onAria2cTellStatusResponses(
+    const QVector<Aria2TellStatusResponse> responses
+) {
+
+    for (const Aria2TellStatusResponse& response : responses) {
+
+        const QString& infoHash = response.infoHash;
+
+        for (TorrentDownload* download : torrentDownloads) {
+
+            if (download->getData().infoHash == infoHash) {
+                TorrentDownloadData newData = conversions::aria2TellStatusResponse(response);
+                download->setData(newData);
+                break;
+            };
+
+        };
+
+    };
+
+};
+
+void TorrentDownloadManager::onAria2cStarted() {
+    statusTimer->start(1000);
+};
+
+void TorrentDownloadManager::onAria2cStopped() {
+    statusTimer->stop();
 };
 
 QString TorrentDownloadManager::toQString() const {
@@ -185,44 +133,6 @@ QString TorrentDownloadManager::toQString() const {
 void TorrentDownloadManager::addDownload(
     TorrentDownloadData data
 ) {
-
-    QJsonObject request{
-        { "jsonrpc", "2.0" },
-        { "id", data.infoHash },
-        { "method", "aria2.addUri" },
-        { "params", QJsonArray {
-            "token:mySecret",
-            QJsonArray{data.magnetUrl}
-        }}
-    };
-
-    QNetworkRequest networkRequest(
-        QUrl("http://127.0.0.1:6800/jsonrpc")
-    );
-
-    networkRequest.setHeader(
-        QNetworkRequest::ContentTypeHeader,
-        "application/json"
-    );
-
-    QNetworkReply* reply =
-        networkAccessManager.post(
-            networkRequest,
-            QJsonDocument(request).toJson(QJsonDocument::Compact)
-        );
-
-    connect(
-        reply,
-        &QNetworkReply::finished,
-        this,
-        [ reply ]() {
-            qDebug()
-                << "aria2 response:"
-                << reply->readAll()
-            ;
-            reply->deleteLater();
-        }
-    );
 
 };
 

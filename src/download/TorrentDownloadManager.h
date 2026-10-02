@@ -1,24 +1,39 @@
 
 #pragma once
 
+#include "Aria2c/Aria2c.h"
 #include "download/TorrentDownloads.h"
 
 #include <QObject>
-#include <QNetworkAccessManager>
-#include <QProcess>
+#include <QString>
+#include <QStandardPaths>
 #include <QTimer>
 
-class TorrentDownloadManager : QObject {
+class TorrentDownloadManager : public QObject {
 
     Q_OBJECT
 
     private:
 
+        QString downloadDirectory = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation) + "/TorrentSearch";
+
+        Aria2c* aria2c;
+
+        QTimer* statusTimer;
+
         TorrentDownloads<TorrentDownload*> torrentDownloads;
 
-        QTimer statusTimer;
-
         void pollDownloadStatuses();
+
+    // private slots:
+
+        void onAria2cTellStatusResponses(
+            const QVector<Aria2TellStatusResponse> responses
+        );
+
+        void onAria2cStarted();
+
+        void onAria2cStopped();
 
     protected:
 
@@ -29,14 +44,6 @@ class TorrentDownloadManager : QObject {
         );
 
         QString toQString() const;
-
-        void requestAria2c(
-            const QString& method,
-            const QJsonArray& params,
-            std::function<void(QNetworkReply*)> callback
-        ) {
-
-        };
 
         void addDownload(
             TorrentDownloadData data
@@ -58,6 +65,10 @@ class TorrentDownloadManager : QObject {
 
         void downloadUpdated(
             const QString& infoHash
+        );
+
+        void aria2cTellStatusResponses(
+            const QVector<Aria2TellStatusResponse> responses
         );
 
 };
