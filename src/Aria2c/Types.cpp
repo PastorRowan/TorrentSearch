@@ -792,11 +792,11 @@ SystemMulticallResponse SystemMulticallResponse::fromQJsonValue(const QJsonValue
                 entry.faultCode    = fault.value(QStringLiteral("code")).toInt();
                 entry.faultMessage = fault.value(QStringLiteral("message")).toString();
                 entry.value        = fault;
-            }
-        }
+            };
+        };
 
         result.entries.append(entry);
-    }
+    };
 
     return result;
 };

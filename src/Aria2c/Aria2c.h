@@ -172,7 +172,7 @@ class Aria2c : public QObject {
         void request(
             const RpcMethod method,
             const QJsonArray& params,
-            std::function<void(const QJsonValue&)> callback
+            std::function<void(std::variant<QJsonValue, Aria2Error>)> callback
         );
 
         #define DECLARE_PARAMS_ARG_Y(name) const name##Params& params,
@@ -182,7 +182,7 @@ class Aria2c : public QObject {
             DECLARE_PARAMS_ARG_##hasParams(name)
 
         #define DECLARE_CALLBACK_ARG(name) \
-            std::function<void(std::variant<name##Response, Aria2Error)> cb
+            std::function<void(std::variant<name##Response, Aria2Error>)> cb
 
         // Named public API — generated from the table.
         #define X(function, method, name, hasParams) \

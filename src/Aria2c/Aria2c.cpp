@@ -1,3 +1,4 @@
+
 #include "Aria2c/Aria2c.h"
 
 #include <QJsonObject>
@@ -23,7 +24,7 @@ Aria2c::Aria2c(
 void Aria2c::request(
     const RpcMethod method,
     const QJsonArray& params,
-    std::function<void(const QJsonValue&)> callback
+    std::function<void(std::variant<QJsonValue, Aria2Error>)> callback
 ) {
 
     // Build the params array with the auth token prepended.
@@ -42,10 +43,10 @@ void Aria2c::request(
     const quint64 id = getNextRequestId.fetch_add(1, std::memory_order_relaxed);
 
     QJsonObject requestObj {
-        { "jsonrpc", "2.0" },
-        { "id", QString::number(id) },
-        { "method", rpcMethodEnumToRpcMethodName(method) },
-        { "params", actualParams }
+        { QStringLiteral("jsonrpc"), QStringLiteral("2.0") },
+        { QStringLiteral("id"),      QString::number(id) },
+        { QStringLiteral("method"),  rpcMethodEnumToRpcMethodName(method) },
+        { QStringLiteral("params"),  actualParams }
     };
 
     QNetworkRequest networkRequest {
@@ -53,7 +54,7 @@ void Aria2c::request(
     };
     networkRequest.setHeader(
         QNetworkRequest::ContentTypeHeader,
-        "application/json"
+        QStringLiteral("application/json")
     );
 
     QNetworkReply* reply =
@@ -70,75 +71,124 @@ void Aria2c::request(
 
             reply->deleteLater();
 
-            // Transport-level failure (connection refused, timeout, ...).
+            const QByteArray body = reply->readAll();
+
+            // Try to parse the body regardless of transport status.
+            // Some HTTP-level errors (401, 400) still carry a
+            // structured JSON-RPC error object, and we don't want to
+            // lose that message by treating them as pure transport failures.
+            QJsonParseError parseError{};
+            const QJsonDocument doc = QJsonDocument::fromJson(body, &parseError);
+            const bool parsed =
+                (parseError.error == QJsonParseError::NoError) && doc.isObject();
+
+            // ---- Transport-level failure (connection refused, timeout, ...) ----
             if (reply->error() != QNetworkReply::NoError) {
+
+                // If the body happens to be a JSON-RPC error, prefer that —
+                // it carries a proper code and message from aria2.
+                if (parsed) {
+                    const QJsonObject obj = doc.object();
+                    if (obj.contains(QStringLiteral("error"))) {
+                        const QJsonObject err =
+                            obj.value(QStringLiteral("error")).toObject();
+                        callback(Aria2Error{
+                            err.value(QStringLiteral("code")).toInt(),
+                            err.value(QStringLiteral("message")).toString(),
+                            Aria2Error::Source::Rpc
+                        });
+                        return;
+                    }
+                }
+
                 qWarning(
                     "Aria2c::request: transport error: %s",
                     qPrintable(reply->errorString())
                 );
-                callback(QJsonValue(QJsonValue::Null));
+                callback(Aria2Error{
+                    -1,
+                    reply->errorString(),
+                    Aria2Error::Source::Transport
+                });
                 return;
             };
 
-            const QByteArray body = reply->readAll();
-
-            QJsonParseError parseError{};
-            const QJsonDocument doc = QJsonDocument::fromJson(body, &parseError);
-
-            if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+            // ---- Parse failure (body wasn't valid JSON, or wasn't an object) ----
+            if (!parsed) {
                 qWarning(
                     "Aria2c::request: invalid JSON response: %s",
                     qPrintable(parseError.errorString())
                 );
-                callback(QJsonValue(QJsonValue::Null));
+                callback(Aria2Error{
+                    -2,
+                    parseError.errorString(),
+                    Aria2Error::Source::Parse
+                });
                 return;
             };
 
             const QJsonObject responseObj = doc.object();
 
-            // JSON-RPC error object: { "code": int, "message": string }
+            // ---- JSON-RPC error object: { "code": int, "message": string } ----
             if (responseObj.contains(QStringLiteral("error"))) {
-                const QJsonObject err = responseObj.value(QStringLiteral("error")).toObject();
+                const QJsonObject err =
+                    responseObj.value(QStringLiteral("error")).toObject();
+                const int     code    = err.value(QStringLiteral("code")).toInt();
+                const QString message = err.value(QStringLiteral("message")).toString();
+
                 qWarning(
-                    "Aria2c::request: RPC error %lld: %s",
-                    static_cast<long long>(err.value(QStringLiteral("code")).toInt()),
-                    qPrintable(err.value(QStringLiteral("message")).toString())
+                    "Aria2c::request: RPC error %d: %s",
+                    code,
+                    qPrintable(message)
                 );
-                callback(QJsonValue(QJsonValue::Null));
+
+                callback(Aria2Error{
+                    code,
+                    message,
+                    Aria2Error::Source::Rpc
+                });
                 return;
             };
 
-            // Success: hand the `result` value to the caller.
+            // ---- Success: hand the `result` value to the caller ----
             callback(responseObj.value(QStringLiteral("result")));
         }
     );
 
 };
 
-#define DEFINE_RPC_METHOD_Y(function, name) \
-    void Aria2c::function( \
+#define DEFINE_RPC_METHOD_Y(func, name) \
+    void Aria2c::func( \
         const name##Params& params, \
-        std::function<void(const name##Response&)> cb \
+        std::function<void(std::variant<name##Response, Aria2Error>)> cb \
     ) { \
         request( \
             RpcMethod::name, \
             params.toQJsonArray(), \
-            [ cb = std::move(cb) ](const QJsonValue& value) { \
-                cb(name##Response::fromQJsonValue(value)); \
+            [ cb = std::move(cb) ](std::variant<QJsonValue, Aria2Error> outcome) { \
+                if (auto* err = std::get_if<Aria2Error>(&outcome)) { \
+                    cb(*err); \
+                } else { \
+                    cb(name##Response::fromQJsonValue(std::get<QJsonValue>(outcome))); \
+                } \
             } \
         ); \
     }
 
 
-#define DEFINE_RPC_METHOD_N(function, name) \
-    void Aria2c::function( \
-        std::function<void(const name##Response&)> cb \
+#define DEFINE_RPC_METHOD_N(func, name) \
+    void Aria2c::func( \
+        std::function<void(std::variant<name##Response, Aria2Error>)> cb \
     ) { \
         request( \
             RpcMethod::name, \
             QJsonArray{}, \
-            [ cb = std::move(cb) ](const QJsonValue& value) { \
-                cb(name##Response::fromQJsonValue(value)); \
+            [ cb = std::move(cb) ](std::variant<QJsonValue, Aria2Error> outcome) { \
+                if (auto* err = std::get_if<Aria2Error>(&outcome)) { \
+                    cb(*err); \
+                } else { \
+                    cb(name##Response::fromQJsonValue(std::get<QJsonValue>(outcome))); \
+                } \
             } \
         ); \
     }
@@ -150,482 +200,9 @@ void Aria2c::request(
 #define X(function, method, name, hasParams) \
     DEFINE_RPC_METHOD(function, name, hasParams)
 
-void Aria2c::aria2AddUri(
-    const Aria2AddUriParams& params,
-    std::function<void (const Aria2AddUriResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2AddUri,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2AddUriResponse::fromQJsonValue(value));
-        }
-    );
-};
+RPC_METHODS
 
-
-void Aria2c::aria2AddTorrent(
-    const Aria2AddTorrentParams& params,
-    std::function<void (const Aria2AddTorrentResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2AddTorrent,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2AddTorrentResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2AddMetalink(
-    const Aria2AddMetalinkParams& params,
-    std::function<void (const Aria2AddMetalinkResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2AddMetalink,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2AddMetalinkResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2Remove(
-    const Aria2RemoveParams& params,
-    std::function<void (const Aria2RemoveResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2Remove,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2RemoveResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2ForceRemove(
-    const Aria2ForceRemoveParams& params,
-    std::function<void (const Aria2ForceRemoveResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2ForceRemove,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2ForceRemoveResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-
-// ================================================================
-// Aria2Pause
-// ================================================================
-
-struct Aria2PauseParams {
-    QString gid;
-
-    QJsonArray toQJsonArray() const {
-        QJsonArray array;
-        array.append(gid);
-        return array;
-    };
-};
-
-struct Aria2PauseResponse {
-    QString gid;    // GID of the paused download
-
-    static Aria2PauseResponse fromQJsonValue(const QJsonValue& value) {
-        Aria2PauseResponse result;
-        result.gid = value.toString();
-        return result;
-    };
-};
-
-void Aria2c::aria2Pause(
-    const Aria2PauseParams& params,
-    std::function<void (const Aria2PauseResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2Pause,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2PauseResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2PauseAll(
-    std::function<void (const Aria2PauseAllResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2PauseAll,
-        QJsonArray{},
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2PauseAllResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2ForcePause(
-    const Aria2ForcePauseParams& params,
-    std::function<void (const Aria2ForcePauseResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2ForcePause,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2ForcePauseResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2ForcePauseAll(
-    std::function<void (const Aria2ForcePauseAllResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2ForcePauseAll,
-        QJsonArray{},
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2ForcePauseAllResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2Unpause(
-    const Aria2UnpauseParams& params,
-    std::function<void (const Aria2UnpauseResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2Unpause,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2UnpauseResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2UnpauseAll(
-    std::function<void (const Aria2UnpauseAllResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2UnpauseAll,
-        QJsonArray{},
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2UnpauseAllResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2TellStatus(
-    const Aria2TellStatusParams& params,
-    std::function<void (const Aria2TellStatusResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2TellStatus,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2TellStatusResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2GetUris(
-    const Aria2GetUrisParams& params,
-    std::function<void (const Aria2GetUrisResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2GetUris,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2GetUrisResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2GetFiles(
-    const Aria2GetFilesParams& params,
-    std::function<void (const Aria2GetFilesResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2GetFiles,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2GetFilesResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2GetPeers(
-    const Aria2GetPeersParams& params,
-    std::function<void (const Aria2GetPeersResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2GetPeers,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2GetPeersResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2GetServers(
-    const Aria2GetServersParams& params,
-    std::function<void (const Aria2GetServersResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2GetServers,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2GetServersResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2TellActive(
-    std::function<void (const Aria2TellActiveResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2TellActive,
-        QJsonArray{},
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2TellActiveResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2TellWaiting(
-    const Aria2TellWaitingParams& params,
-    std::function<void (const Aria2TellWaitingResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2TellWaiting,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2TellWaitingResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2TellStopped(
-    const Aria2TellStoppedParams& params,
-    std::function<void (const Aria2TellStoppedResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2TellStopped,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2TellStoppedResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2ChangePosition(
-    const Aria2ChangePositionParams& params,
-    std::function<void (const Aria2ChangePositionResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2ChangePosition,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2ChangePositionResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2ChangeUri(
-    const Aria2ChangeUriParams& params,
-    std::function<void (const Aria2ChangeUriResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2ChangeUri,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2ChangeUriResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2GetOption(
-    const Aria2GetOptionParams& params,
-    std::function<void (const Aria2GetOptionResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2GetOption,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2GetOptionResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2ChangeOption(
-    const Aria2ChangeOptionParams& params,
-    std::function<void (const Aria2ChangeOptionResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2ChangeOption,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2ChangeOptionResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2GetGlobalOption(
-    std::function<void (const Aria2GetGlobalOptionResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2GetGlobalOption,
-        QJsonArray{},
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2GetGlobalOptionResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2ChangeGlobalOption(
-    const Aria2ChangeGlobalOptionParams& params,
-    std::function<void (const Aria2ChangeGlobalOptionResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2ChangeGlobalOption,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2ChangeGlobalOptionResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2GetGlobalStat(
-    std::function<void (const Aria2GetGlobalStatResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2GetGlobalStat,
-        QJsonArray{},
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2GetGlobalStatResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2PurgeDownloadResult(
-    std::function<void (const Aria2PurgeDownloadResultResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2PurgeDownloadResult,
-        QJsonArray{},
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2PurgeDownloadResultResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2RemoveDownloadResult(
-    const Aria2RemoveDownloadResultParams& params,
-    std::function<void (const Aria2RemoveDownloadResultResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2RemoveDownloadResult,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2RemoveDownloadResultResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2GetVersion(
-    std::function<void(const Aria2GetVersionResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2GetVersion,
-        QJsonArray{},
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2GetVersionResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2GetSessionInfo(
-    std::function<void (const Aria2GetSessionInfoResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2GetSessionInfo,
-        QJsonArray{},
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2GetSessionInfoResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2Shutdown(
-    std::function<void (const Aria2ShutdownResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2Shutdown,
-        QJsonArray{},
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2ShutdownResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2ForceShutdown(
-    std::function<void (const Aria2ForceShutdownResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2ForceShutdown,
-        QJsonArray{},
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2ForceShutdownResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::aria2SaveSession(
-    std::function<void (const Aria2SaveSessionResponse&)> cb
-) {
-    request(
-        RpcMethod::Aria2SaveSession,
-        QJsonArray{},
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(Aria2SaveSessionResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::systemMulticall(
-    const SystemMulticallParams& params,
-    std::function<void (const SystemMulticallResponse&)> cb
-) {
-    request(
-        RpcMethod::SystemMulticall,
-        params.toQJsonArray(),
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(SystemMulticallResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::systemListMethods(
-    std::function<void (const SystemListMethodsResponse&)> cb
-) {
-    request(
-        RpcMethod::SystemListMethods,
-        QJsonArray{},
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(SystemListMethodsResponse::fromQJsonValue(value));
-        }
-    );
-};
-
-void Aria2c::systemListNotifications(
-    std::function<void (const SystemListNotificationsResponse&)> cb
-) {
-    request(
-        RpcMethod::SystemListNotifications,
-        QJsonArray{},
-        [ cb = std::move(cb) ](const QJsonValue& value) {
-            cb(SystemListNotificationsResponse::fromQJsonValue(value));
-        }
-    );
-};
+#undef X
+#undef DEFINE_RPC_METHOD
+#undef DEFINE_RPC_METHOD_N
+#undef DEFINE_RPC_METHOD_Y
