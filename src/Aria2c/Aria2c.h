@@ -1,11 +1,15 @@
 
 #pragma once
 
+#include "Aria2c/Types.h"
+
 #include <QObject>
 #include <QNetworkAccessManager>
 #include <QProcess>
 #include <QString>
+#include <concepts>
 #include <functional>
+#include <variant>
 
 // RPC methods macro used to create stuff
 #define RPC_METHODS \
@@ -55,7 +59,6 @@ enum class RpcMethod {
 };
 
 #undef X
-//
 
 // RPC method count
 const unsigned int RPC_METHOD_COUNT = static_cast<unsigned int>(RpcMethod::Count);
@@ -82,29 +85,60 @@ QString rpcMethodEnumToRpcMethodName(
     return rpcMethodNames[RpcMethodToUnsignedInt(method)];
 };
 
-// Declare param and response structs
+// RPC method parameters concept
+// Checks whether each RPC method parameter has toQJsonArray
+template<typename T>
+concept RpcParams = requires(const T& params) {
+    { params.toQJsonArray() } -> std::same_as<QJsonArray>;
+};
 
-#define DECLARE_PARAMS_STRUCT_Y(name) struct name##Params;
-#define DECLARE_PARAMS_STRUCT_N(name)
+// RPC method response concept
+// Checks whether each RPC method response has fromQJsonValue
+template<typename T>
+concept RpcResponse = requires(const QJsonValue& qJsonValue) {
+    { T::fromQJsonValue(qJsonValue) } -> std::same_as<T>;
+};
 
-#define DECLARE_PARAMS_STRUCT(hasParams, name) \
-    DECLARE_PARAMS_STRUCT_##hasParams(name)
 
-#define DECLARE_RESPONSE_STRUCT(name) struct name##Response;
+// ============================================================
+// Compile-time validation of every RPC method
+// ============================================================
 
+// Methods WITH parameters
+#define TEST_RPC_PARAMS_Y(name) \
+    static_assert( \
+        RpcParams<name##Params>, \
+        #name "Params must satisfy RpcParams" \
+    );
+
+// Methods WITHOUT parameters
+#define TEST_RPC_PARAMS_N(name)
+
+// Select Y/N version
+#define TEST_RPC_PARAMS(name, hasParams) \
+    TEST_RPC_PARAMS_##hasParams(name)
+
+// Every RPC method must have a valid response type.
+#define TEST_RPC_RESPONSE(name) \
+    static_assert( \
+        RpcResponse<name##Response>, \
+        #name "Response must satisfy RpcResponse" \
+    );
+
+// Run the tests against every entry in RPC_METHODS.
 #define X(function, method, name, hasParams) \
-    DECLARE_PARAMS_STRUCT(hasParams, name) \
-    DECLARE_RESPONSE_STRUCT(name)
+    TEST_RPC_PARAMS(name, hasParams) \
+    TEST_RPC_RESPONSE(name)
 
 RPC_METHODS
 
 #undef X
-#undef DECLARE_PARAMS_STRUCT_Y
-#undef DECLARE_PARAMS_STRUCT_N
-#undef DECLARE_PARAMS_STRUCT
-#undef DECLARE_RESPONSE_STRUCT
+#undef TEST_RPC_PARAMS
+#undef TEST_RPC_PARAMS_Y
+#undef TEST_RPC_PARAMS_N
+#undef TEST_RPC_RESPONSE
 
-class Aria2c : QObject {
+class Aria2c : public QObject {
 
     Q_OBJECT
 
@@ -148,7 +182,7 @@ class Aria2c : QObject {
             DECLARE_PARAMS_ARG_##hasParams(name)
 
         #define DECLARE_CALLBACK_ARG(name) \
-            std::function<void(const name##Response&)> cb
+            std::function<void(std::variant<name##Response, Aria2Error)> cb
 
         // Named public API — generated from the table.
         #define X(function, method, name, hasParams) \

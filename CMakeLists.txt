@@ -18,6 +18,7 @@ qt_standard_project_setup(REQUIRES 6.5)
 set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(HEADERS
     "${INCLUDE_DIR}/Aria2c/Aria2c.h"
+    "${INCLUDE_DIR}/Aria2c/Types.h"
     "${INCLUDE_DIR}/download/TorrentDownload.h"
     "${INCLUDE_DIR}/download/TorrentDownloadData.h"
     "${INCLUDE_DIR}/download/TorrentDownloadManager.h"
@@ -34,6 +35,7 @@ set(HEADERS
 set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(SOURCES
     "${SRC_DIR}/Aria2c/Aria2c.cpp"
+    "${SRC_DIR}/Aria2c/Types.cpp"
     "${SRC_DIR}/download/TorrentDownload.cpp"
     "${SRC_DIR}/download/TorrentDownloadData.cpp"
     "${SRC_DIR}/download/TorrentDownloadManager.cpp"

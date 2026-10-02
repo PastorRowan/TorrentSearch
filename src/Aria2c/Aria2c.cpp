@@ -1,4 +1,3 @@
-
 #include "Aria2c/Aria2c.h"
 
 #include <QJsonObject>
@@ -116,743 +115,517 @@ void Aria2c::request(
 
 };
 
-struct Aria2AddUriParams {
-    QStringList uris;
-    struct Tail1 {
-        QJsonObject options;
-        std::optional<int> position;
-    };
-    std::optional<Tail1> tail1;
-};
+#define DEFINE_RPC_METHOD_Y(function, name) \
+    void Aria2c::function( \
+        const name##Params& params, \
+        std::function<void(const name##Response&)> cb \
+    ) { \
+        request( \
+            RpcMethod::name, \
+            params.toQJsonArray(), \
+            [ cb = std::move(cb) ](const QJsonValue& value) { \
+                cb(name##Response::fromQJsonValue(value)); \
+            } \
+        ); \
+    }
 
-struct Aria2AddUriResponse {};
+
+#define DEFINE_RPC_METHOD_N(function, name) \
+    void Aria2c::function( \
+        std::function<void(const name##Response&)> cb \
+    ) { \
+        request( \
+            RpcMethod::name, \
+            QJsonArray{}, \
+            [ cb = std::move(cb) ](const QJsonValue& value) { \
+                cb(name##Response::fromQJsonValue(value)); \
+            } \
+        ); \
+    }
+
+
+#define DEFINE_RPC_METHOD(function, name, hasParams) \
+    DEFINE_RPC_METHOD_##hasParams(function, name)
+
+#define X(function, method, name, hasParams) \
+    DEFINE_RPC_METHOD(function, name, hasParams)
 
 void Aria2c::aria2AddUri(
     const Aria2AddUriParams& params,
     std::function<void (const Aria2AddUriResponse&)> cb
 ) {
-
-    QJsonArray qJsonArray;
-
-    QJsonArray urisArray;
-    for (const QString& uri : params.uris) {
-        urisArray.append(uri);
-    };
-    qJsonArray.append(urisArray);
-
-    if (params.tail1) {
-        qJsonArray.append(params.tail1->options);
-        if (params.tail1->position) {
-            qJsonArray.append(*params.tail1->position);
-        };
-    };
-
     request(
         RpcMethod::Aria2AddUri,
-        qJsonArray,
+        params.toQJsonArray(),
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            // TODO: parse `value` into Aria2AddUriResponse fields
-            (void)value;
-            cb(Aria2AddUriResponse{});
+            cb(Aria2AddUriResponse::fromQJsonValue(value));
         }
     );
-
 };
 
-
-struct Aria2AddTorrentParams {
-    QByteArray torrent;
-    struct Tail1 {
-        QStringList uris;
-        struct Tail2 {
-            QJsonObject options;
-            std::optional<int> position;
-        };
-        std::optional<Tail2> tail2;
-    };
-    std::optional<Tail1> tail1;
-};
-
-struct Aria2AddTorrentResponse {};
 
 void Aria2c::aria2AddTorrent(
     const Aria2AddTorrentParams& params,
     std::function<void (const Aria2AddTorrentResponse&)> cb
 ) {
-
-    QJsonArray qJsonArray;
-    qJsonArray.append(QString::fromLatin1(params.torrent.toBase64()));
-
-    if (params.tail1) {
-        QJsonArray urisArray;
-        for (const QString& uri : params.tail1->uris) {
-            urisArray.append(uri);
-        };
-        qJsonArray.append(urisArray);
-
-        if (params.tail1->tail2) {
-            qJsonArray.append(params.tail1->tail2->options);
-            if (params.tail1->tail2->position) {
-                qJsonArray.append(*params.tail1->tail2->position);
-            };
-        };
-    };
-
     request(
         RpcMethod::Aria2AddTorrent,
-        qJsonArray,
+        params.toQJsonArray(),
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2AddTorrentResponse{});
+            cb(Aria2AddTorrentResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2AddMetalinkParams {
-    QByteArray metalink;
-    struct Tail1 {
-        QJsonObject options;
-        std::optional<int> position;
-    };
-    std::optional<Tail1> tail1;
-};
-
-struct Aria2AddMetalinkResponse {};
 
 void Aria2c::aria2AddMetalink(
     const Aria2AddMetalinkParams& params,
     std::function<void (const Aria2AddMetalinkResponse&)> cb
 ) {
-
-    QJsonArray qJsonArray;
-    qJsonArray.append(QString::fromLatin1(params.metalink.toBase64()));
-
-    if (params.tail1) {
-        qJsonArray.append(params.tail1->options);
-        if (params.tail1->position) {
-            qJsonArray.append(*params.tail1->position);
-        };
-    };
-
     request(
         RpcMethod::Aria2AddMetalink,
-        qJsonArray,
+        params.toQJsonArray(),
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2AddMetalinkResponse{});
+            cb(Aria2AddMetalinkResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2RemoveParams {
-    QString gid;
-};
-
-struct Aria2RemoveResponse {};
 
 void Aria2c::aria2Remove(
     const Aria2RemoveParams& params,
     std::function<void (const Aria2RemoveResponse&)> cb
 ) {
-
-    QJsonArray qJsonArray;
-    qJsonArray.append(params.gid);
-
     request(
         RpcMethod::Aria2Remove,
-        qJsonArray,
+        params.toQJsonArray(),
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2RemoveResponse{});
+            cb(Aria2RemoveResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2ForceRemoveParams {
-    QString gid;
-};
-
-struct Aria2ForceRemoveResponse {};
 
 void Aria2c::aria2ForceRemove(
     const Aria2ForceRemoveParams& params,
     std::function<void (const Aria2ForceRemoveResponse&)> cb
 ) {
-
-    QJsonArray qJsonArray;
-    qJsonArray.append(params.gid);
-
     request(
         RpcMethod::Aria2ForceRemove,
-        qJsonArray,
+        params.toQJsonArray(),
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2ForceRemoveResponse{});
+            cb(Aria2ForceRemoveResponse::fromQJsonValue(value));
         }
     );
-
 };
 
+
+// ================================================================
+// Aria2Pause
+// ================================================================
 
 struct Aria2PauseParams {
     QString gid;
+
+    QJsonArray toQJsonArray() const {
+        QJsonArray array;
+        array.append(gid);
+        return array;
+    };
 };
 
-struct Aria2PauseResponse {};
+struct Aria2PauseResponse {
+    QString gid;    // GID of the paused download
+
+    static Aria2PauseResponse fromQJsonValue(const QJsonValue& value) {
+        Aria2PauseResponse result;
+        result.gid = value.toString();
+        return result;
+    };
+};
 
 void Aria2c::aria2Pause(
     const Aria2PauseParams& params,
     std::function<void (const Aria2PauseResponse&)> cb
 ) {
-
-    QJsonArray qJsonArray;
-    qJsonArray.append(params.gid);
-
     request(
         RpcMethod::Aria2Pause,
-        qJsonArray,
+        params.toQJsonArray(),
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2PauseResponse{});
+            cb(Aria2PauseResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2PauseAllResponse {};
 
 void Aria2c::aria2PauseAll(
     std::function<void (const Aria2PauseAllResponse&)> cb
 ) {
-
     request(
         RpcMethod::Aria2PauseAll,
         QJsonArray{},
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2PauseAllResponse{});
+            cb(Aria2PauseAllResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2ForcePauseParams {
-    QString gid;
-};
-
-struct Aria2ForcePauseResponse {};
 
 void Aria2c::aria2ForcePause(
     const Aria2ForcePauseParams& params,
     std::function<void (const Aria2ForcePauseResponse&)> cb
 ) {
-
-    QJsonArray qJsonArray;
-    qJsonArray.append(params.gid);
-
     request(
         RpcMethod::Aria2ForcePause,
-        qJsonArray,
+        params.toQJsonArray(),
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2ForcePauseResponse{});
+            cb(Aria2ForcePauseResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2ForcePauseAllResponse {};
 
 void Aria2c::aria2ForcePauseAll(
     std::function<void (const Aria2ForcePauseAllResponse&)> cb
 ) {
-
     request(
         RpcMethod::Aria2ForcePauseAll,
         QJsonArray{},
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2ForcePauseAllResponse{});
+            cb(Aria2ForcePauseAllResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2UnpauseParams {
-    QString gid;
-};
-
-struct Aria2UnpauseResponse {};
 
 void Aria2c::aria2Unpause(
     const Aria2UnpauseParams& params,
     std::function<void (const Aria2UnpauseResponse&)> cb
 ) {
-
-    QJsonArray qJsonArray;
-    qJsonArray.append(params.gid);
-
     request(
         RpcMethod::Aria2Unpause,
-        qJsonArray,
+        params.toQJsonArray(),
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2UnpauseResponse{});
+            cb(Aria2UnpauseResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2UnpauseAllResponse {};
 
 void Aria2c::aria2UnpauseAll(
     std::function<void (const Aria2UnpauseAllResponse&)> cb
 ) {
-
     request(
         RpcMethod::Aria2UnpauseAll,
         QJsonArray{},
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2UnpauseAllResponse{});
+            cb(Aria2UnpauseAllResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2TellStatusParams {
-    QString gid;
-    std::optional<QStringList> keys;
-};
-
-struct Aria2TellStatusResponse {};
 
 void Aria2c::aria2TellStatus(
     const Aria2TellStatusParams& params,
     std::function<void (const Aria2TellStatusResponse&)> cb
 ) {
-
-    QJsonArray qJsonArray;
-    qJsonArray.append(params.gid);
-
-    if (params.keys) {
-        QJsonArray keysArray;
-        for (const QString& key : *params.keys) {
-            keysArray.append(key);
-        };
-        qJsonArray.append(keysArray);
-    };
-
     request(
         RpcMethod::Aria2TellStatus,
-        qJsonArray,
+        params.toQJsonArray(),
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2TellStatusResponse{});
+            cb(Aria2TellStatusResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2GetUrisParams {
-    QString gid;
-};
-
-struct Aria2GetUrisResponse {};
 
 void Aria2c::aria2GetUris(
     const Aria2GetUrisParams& params,
     std::function<void (const Aria2GetUrisResponse&)> cb
 ) {
-
-    QJsonArray qJsonArray;
-    qJsonArray.append(params.gid);
-
     request(
         RpcMethod::Aria2GetUris,
-        qJsonArray,
+        params.toQJsonArray(),
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2GetUrisResponse{});
+            cb(Aria2GetUrisResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2GetFilesParams {
-    QString gid;
-};
-
-struct Aria2GetFilesResponse {};
 
 void Aria2c::aria2GetFiles(
     const Aria2GetFilesParams& params,
     std::function<void (const Aria2GetFilesResponse&)> cb
 ) {
-
-    QJsonArray qJsonArray;
-    qJsonArray.append(params.gid);
-
     request(
         RpcMethod::Aria2GetFiles,
-        qJsonArray,
+        params.toQJsonArray(),
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2GetFilesResponse{});
+            cb(Aria2GetFilesResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2GetPeersParams {
-    QString gid;
-};
-
-struct Aria2GetPeersResponse {};
 
 void Aria2c::aria2GetPeers(
     const Aria2GetPeersParams& params,
     std::function<void (const Aria2GetPeersResponse&)> cb
 ) {
-
-    QJsonArray qJsonArray;
-    qJsonArray.append(params.gid);
-
     request(
         RpcMethod::Aria2GetPeers,
-        qJsonArray,
+        params.toQJsonArray(),
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2GetPeersResponse{});
+            cb(Aria2GetPeersResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2GetServersParams {
-    QString gid;
-};
-
-struct Aria2GetServersResponse {};
 
 void Aria2c::aria2GetServers(
     const Aria2GetServersParams& params,
     std::function<void (const Aria2GetServersResponse&)> cb
 ) {
-
-    QJsonArray qJsonArray;
-    qJsonArray.append(params.gid);
-
     request(
         RpcMethod::Aria2GetServers,
-        qJsonArray,
+        params.toQJsonArray(),
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2GetServersResponse{});
+            cb(Aria2GetServersResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2TellActiveResponse {};
 
 void Aria2c::aria2TellActive(
     std::function<void (const Aria2TellActiveResponse&)> cb
 ) {
-
     request(
         RpcMethod::Aria2TellActive,
         QJsonArray{},
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2TellActiveResponse{});
+            cb(Aria2TellActiveResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2TellWaitingParams {
-    int offset;
-    int num;
-    std::optional<QStringList> keys;
-};
-
-struct Aria2TellWaitingResponse {};
 
 void Aria2c::aria2TellWaiting(
     const Aria2TellWaitingParams& params,
     std::function<void (const Aria2TellWaitingResponse&)> cb
 ) {
-
-    QJsonArray qJsonArray;
-    qJsonArray.append(params.offset);
-    qJsonArray.append(params.num);
-
-    if (params.keys) {
-        QJsonArray keysArray;
-        for (const QString& key : *params.keys) {
-            keysArray.append(key);
-        };
-        qJsonArray.append(keysArray);
-    };
-
     request(
         RpcMethod::Aria2TellWaiting,
-        qJsonArray,
+        params.toQJsonArray(),
         [ cb = std::move(cb) ](const QJsonValue& value) {
-            (void)value;
-            cb(Aria2TellWaitingResponse{});
+            cb(Aria2TellWaitingResponse::fromQJsonValue(value));
         }
     );
-
 };
-
-
-struct Aria2TellStoppedParams {
-    int offset;
-    int num;
-    std::optional<QStringList> keys;
-};
-
-struct Aria2TellStoppedResponse {};
 
 void Aria2c::aria2TellStopped(
     const Aria2TellStoppedParams& params,
     std::function<void (const Aria2TellStoppedResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::Aria2TellStopped,
+        params.toQJsonArray(),
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2TellStoppedResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-
-struct Aria2ChangePositionParams {
-
-    enum class How {
-        Set,
-        Cur,
-        End,
-        Count
-    };
-
-    static constexpr unsigned int howToUnsignedInt(const How h) {
-        return static_cast<unsigned int>(h);
-    };
-
-    static constexpr unsigned int HOW_COUNT =
-        static_cast<unsigned int>(How::Count);
-
-    QString gid;
-    int pos;
-    How how;
-
-    static inline const QString HOW_ENUM_TO_QSTRING_MAP[HOW_COUNT] = {
-        "POS_SET",
-        "POS_CUR",
-        "POS_END"
-    };
-
-};
-
-struct Aria2ChangePositionResponse {};
 
 void Aria2c::aria2ChangePosition(
     const Aria2ChangePositionParams& params,
     std::function<void (const Aria2ChangePositionResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::Aria2ChangePosition,
+        params.toQJsonArray(),
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2ChangePositionResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-
-struct Aria2ChangeUriParams {
-    QString gid;
-    int fileIndex;
-    QStringList delUris;
-    QStringList addUris;
-    std::optional<int> position;
-};
-
-struct Aria2ChangeUriResponse {};
 
 void Aria2c::aria2ChangeUri(
     const Aria2ChangeUriParams& params,
     std::function<void (const Aria2ChangeUriResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::Aria2ChangeUri,
+        params.toQJsonArray(),
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2ChangeUriResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-
-struct Aria2GetOptionParams {
-    QString gid;
-};
-
-struct Aria2GetOptionResponse {};
 
 void Aria2c::aria2GetOption(
     const Aria2GetOptionParams& params,
     std::function<void (const Aria2GetOptionResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::Aria2GetOption,
+        params.toQJsonArray(),
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2GetOptionResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-
-struct Aria2ChangeOptionParams {
-    QString gid;
-    QJsonObject options;
-};
-
-struct Aria2ChangeOptionResponse {};
 
 void Aria2c::aria2ChangeOption(
     const Aria2ChangeOptionParams& params,
     std::function<void (const Aria2ChangeOptionResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::Aria2ChangeOption,
+        params.toQJsonArray(),
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2ChangeOptionResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-
-struct Aria2GetGlobalOptionResponse {};
 
 void Aria2c::aria2GetGlobalOption(
     std::function<void (const Aria2GetGlobalOptionResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::Aria2GetGlobalOption,
+        QJsonArray{},
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2GetGlobalOptionResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-
-struct Aria2ChangeGlobalOptionParams {
-    QJsonObject options;
-};
-
-struct Aria2ChangeGlobalOptionResponse {};
 
 void Aria2c::aria2ChangeGlobalOption(
     const Aria2ChangeGlobalOptionParams& params,
     std::function<void (const Aria2ChangeGlobalOptionResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::Aria2ChangeGlobalOption,
+        params.toQJsonArray(),
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2ChangeGlobalOptionResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-
-struct Aria2GetGlobalStatResponse {};
 
 void Aria2c::aria2GetGlobalStat(
     std::function<void (const Aria2GetGlobalStatResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::Aria2GetGlobalStat,
+        QJsonArray{},
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2GetGlobalStatResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-
-struct Aria2PurgeDownloadResultResponse {};
-
 
 void Aria2c::aria2PurgeDownloadResult(
     std::function<void (const Aria2PurgeDownloadResultResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::Aria2PurgeDownloadResult,
+        QJsonArray{},
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2PurgeDownloadResultResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-
-struct Aria2RemoveDownloadResultParams {
-    QString gid;
-};
-
-struct Aria2RemoveDownloadResultResponse {};
 
 void Aria2c::aria2RemoveDownloadResult(
     const Aria2RemoveDownloadResultParams& params,
     std::function<void (const Aria2RemoveDownloadResultResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::Aria2RemoveDownloadResult,
+        params.toQJsonArray(),
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2RemoveDownloadResultResponse::fromQJsonValue(value));
+        }
+    );
 };
 
-
-struct Aria2GetSessionInfoResponse {};
+void Aria2c::aria2GetVersion(
+    std::function<void(const Aria2GetVersionResponse&)> cb
+) {
+    request(
+        RpcMethod::Aria2GetVersion,
+        QJsonArray{},
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2GetVersionResponse::fromQJsonValue(value));
+        }
+    );
+};
 
 void Aria2c::aria2GetSessionInfo(
     std::function<void (const Aria2GetSessionInfoResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::Aria2GetSessionInfo,
+        QJsonArray{},
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2GetSessionInfoResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-
-struct Aria2ShutdownResponse {};
 
 void Aria2c::aria2Shutdown(
     std::function<void (const Aria2ShutdownResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::Aria2Shutdown,
+        QJsonArray{},
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2ShutdownResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-
-struct Aria2ForceShutdownResponse {};
 
 void Aria2c::aria2ForceShutdown(
     std::function<void (const Aria2ForceShutdownResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::Aria2ForceShutdown,
+        QJsonArray{},
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2ForceShutdownResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-
-struct Aria2SaveSessionResponse {};
 
 void Aria2c::aria2SaveSession(
     std::function<void (const Aria2SaveSessionResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::Aria2SaveSession,
+        QJsonArray{},
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(Aria2SaveSessionResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-// One entry in a system.multicall batch. `methodName` is the RPC method
-// name (e.g. "aria2.getVersion"); `params` is the already-serialized
-// QJsonArray from some Params::toQJsonArray().
-struct SystemMulticallMethod {
-    QString methodName;
-    QJsonArray params;
-};
-
-struct SystemMulticallParams {
-    QVector<SystemMulticallMethod> methods;
-};
-
-struct SystemMulticallResponse {};
 
 void Aria2c::systemMulticall(
     const SystemMulticallParams& params,
     std::function<void (const SystemMulticallResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::SystemMulticall,
+        params.toQJsonArray(),
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(SystemMulticallResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-
-struct SystemListMethodsResponse {};
 
 void Aria2c::systemListMethods(
     std::function<void (const SystemListMethodsResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::SystemListMethods,
+        QJsonArray{},
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(SystemListMethodsResponse::fromQJsonValue(value));
+        }
+    );
 };
-
-
-struct SystemListNotificationsResponse {};
 
 void Aria2c::systemListNotifications(
     std::function<void (const SystemListNotificationsResponse&)> cb
 ) {
-
+    request(
+        RpcMethod::SystemListNotifications,
+        QJsonArray{},
+        [ cb = std::move(cb) ](const QJsonValue& value) {
+            cb(SystemListNotificationsResponse::fromQJsonValue(value));
+        }
+    );
 };
