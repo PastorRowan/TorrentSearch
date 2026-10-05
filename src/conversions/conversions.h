@@ -6,8 +6,9 @@
 
 namespace conversions {
 
-    TorrentDownloadData aria2TellStatusResponse(
-        const Aria2TellStatusResponse& aria2TellStatusResponse
+    TorrentDownloadData aria2TellStatusResponseToTorrentDownloadData(
+        const Aria2TellStatusResponse& aria2TellStatusResponse,
+        TorrentDownloadData torrentDownloadData = {}
     );
 
 };

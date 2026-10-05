@@ -1,3 +1,11 @@
+
+#pragma once
+
+#include <QByteArray>
+
+// query = ubuntu
+
+const QByteArray PIRATE_BAY_SEARCH_RESPONSE = R"json(
 [
     {
         "id": "59191690",
@@ -1400,3 +1408,4 @@
         "imdb": ""
     }
 ]
+)json";

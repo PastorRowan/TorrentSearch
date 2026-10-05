@@ -1,14 +1,15 @@
 
 #pragma once
 
-#include <QObject>
-#include <QVector>
-class QNetworkAccessManager;
-class QString;
 #include "search/TorrentSearch.h"
 #include "search/EZTVSearch.h"
 #include "search/PirateBaySearch.h"
 #include "search/TorrentSearchResults.h"
+
+#include <QObject>
+#include <QVector>
+class QNetworkAccessManager;
+class QString;
 
 using TorrentSearchFactory = std::function<TorrentSearch*(QNetworkAccessManager*, QObject*)>;
 

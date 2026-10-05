@@ -1,8 +1,10 @@
 
 #include "Aria2c/Aria2c.h"
+#include "helpers/helpers.h"
 
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QJsonValue>
 #include <QJsonDocument>
 #include <QJsonParseError>
 #include <QNetworkReply>
@@ -12,18 +14,6 @@
 #include <QDebug>
 
 std::atomic<quint64> getNextRequestId{ 1 };
-
-unsigned int rpcMethodToUnsignedInt(
-    const RpcMethod method
-) {
-    return static_cast<unsigned int>(method);
-};
-
-QString rpcMethodEnumToRpcMethodName(
-    const RpcMethod method
-) {
-    return rpcMethodNames[rpcMethodToUnsignedInt(method)];
-};
 
 Aria2c::Aria2c(
     QObject* parent
@@ -47,7 +37,13 @@ Aria2c::Aria2c(
         &QProcess::errorOccurred,
         this,
         [ this ](QProcess::ProcessError error) {
-            qDebug() << "Failed to start aria2c process: " << error;
+            qDebug()
+                << "Aria2c process error:\n"
+                << "error =" << error << "\n"
+                << "errorString =" << aria2cProcess->errorString() << "\n"
+                << "program =" << aria2cProcess->program() << "\n"
+                << "arguments =" << aria2cProcess->arguments()
+            ;
             emit stopped();
         }
     );
@@ -68,9 +64,13 @@ bool Aria2c::isRunning() const {
 
 void Aria2c::start() {
 
-    qDebug() << "Aria2c::start() called";
+    qDebug()
+        << "Aria2c::start() called\n"
+        << "isRunning(): " << isRunning()
+    ;
 
-    if (aria2cProcess->state() != QProcess::NotRunning) {
+    if (isRunning() || isStarting()) {
+        qDebug() << "Aria2c is already running or starting";
         return;
     };
 
@@ -89,22 +89,28 @@ void Aria2c::stop() {
         return;
     };
 
-    aria2Shutdown([ this ](std::variant<Aria2ShutdownResponse, Aria2Error> outcome) {
+    aria2Shutdown(
+        this,
+        [ this ](std::variant<Aria2ShutdownResponse, Aria2Error> outcome) {
 
-        if (auto* err = std::get_if<Aria2Error>(&outcome)) {
-            qDebug() << "Failed to shutdown aria2c RPC server" << err->message;
-            aria2ForceShutdown([ this ](std::variant<Aria2ForceShutdownResponse, Aria2Error> outcome) {
-                if (auto* err = std::get_if<Aria2Error>(&outcome)) {
-                    qDebug() << "Failed to force shutdown aria2c RPC server" << err->message;
-                };
-                aria2cProcess->terminate();
-            });
-            return;
-        };
+            if (auto* err = std::get_if<Aria2Error>(&outcome)) {
+                qDebug() << "Failed to shutdown aria2c RPC server" << err->message;
+                aria2ForceShutdown(
+                    this,
+                    [ this ](std::variant<Aria2ForceShutdownResponse, Aria2Error> outcome) {
+                        if (auto* err = std::get_if<Aria2Error>(&outcome)) {
+                            qDebug() << "Failed to force shutdown aria2c RPC server" << err->message;
+                        };
+                        aria2cProcess->terminate();
+                    }
+                );
+                return;
+            };
 
-        aria2cProcess->terminate();
+            aria2cProcess->terminate();
 
-    });
+        }
+    );
 
     if (!aria2cProcess->waitForFinished(4000)) {
         qWarning() << "aria2c did not terminate gracefully; killing process.";
@@ -117,8 +123,19 @@ void Aria2c::stop() {
 void Aria2c::request(
     const RpcMethod method,
     const QJsonArray& params,
+    QObject* context,
     std::function<void(std::variant<QJsonValue, Aria2Error>)> callback
 ) {
+
+    #define LOG_REQUEST 0
+
+    #if LOG_REQUEST
+        qDebug().noquote()
+            << "method: " << rpcMethodEnumToRpcMethodName(method) << "\n"
+            << "params: " << helpers::prettyQJson(params)
+        ;
+    #endif
+    #undef LOG_REQUEST
 
     if (!isRunning()) {
         callback(Aria2Error{
@@ -135,11 +152,22 @@ void Aria2c::request(
     QJsonArray actualParams;
 
     if (!secret.isEmpty()) {
-        actualParams.append("token:" + secret);
-    };
-
-    for (const QJsonValue& param : params) {
-        actualParams.append(param);
+        QJsonArray methods = params;
+        if (method == RpcMethod::SystemMulticall) {
+            for (unsigned int i = 0; i < methods.size(); ++i) {
+                QJsonObject entry = methods[i].toObject();
+                QJsonArray entryParams = entry["params"].toArray();
+                entryParams.prepend("token:" + secret);
+                entry["params"] = entryParams;
+                methods[i] = entry;
+            };
+        actualParams.append(methods);
+        } else {
+            actualParams.append("token:" + secret);
+            for (const QJsonValue& param : params) {
+                actualParams.append(param);
+            };
+        };
     };
 
     const quint64 id = getNextRequestId.fetch_add(1, std::memory_order_relaxed);
@@ -168,7 +196,7 @@ void Aria2c::request(
     connect(
         reply,
         &QNetworkReply::finished,
-        this,
+        context,
         [ reply, callback = std::move(callback) ]() mutable {
 
             reply->deleteLater();
@@ -263,17 +291,24 @@ void Aria2c::request(
 #define DEFINE_RPC_METHOD_Y(func, name) \
     void Aria2c::func( \
         const name##Params& params, \
+        QObject* context, \
         std::function<void(std::variant<name##Response, Aria2Error>)> cb \
     ) { \
         request( \
             RpcMethod::name, \
             params.toQJsonArray(), \
+            context, \
             [ cb = std::move(cb) ](std::variant<QJsonValue, Aria2Error> outcome) { \
                 if (auto* err = std::get_if<Aria2Error>(&outcome)) { \
                     cb(*err); \
+                } else if (auto* qJsonValueResponse = std::get_if<QJsonValue>(&outcome)) { \
+                    cb(name##Response::fromQJsonValue(*qJsonValueResponse)); \
                 } else { \
-                    cb(name##Response::fromQJsonValue(std::get<QJsonValue>(outcome))); \
-                } \
+                    qFatal( \
+                        "Error: '%s' received an unknown type", \
+                        #name \
+                    ); \
+                }; \
             } \
         ); \
     }
@@ -281,17 +316,24 @@ void Aria2c::request(
 
 #define DEFINE_RPC_METHOD_N(func, name) \
     void Aria2c::func( \
+        QObject* context, \
         std::function<void(std::variant<name##Response, Aria2Error>)> cb \
     ) { \
         request( \
             RpcMethod::name, \
             QJsonArray{}, \
+            context, \
             [ cb = std::move(cb) ](std::variant<QJsonValue, Aria2Error> outcome) { \
                 if (auto* err = std::get_if<Aria2Error>(&outcome)) { \
                     cb(*err); \
+                } else if (auto* qJsonValueResponse = std::get_if<QJsonValue>(&outcome)) { \
+                    cb(name##Response::fromQJsonValue(*qJsonValueResponse)); \
                 } else { \
-                    cb(name##Response::fromQJsonValue(std::get<QJsonValue>(outcome))); \
-                } \
+                    qFatal( \
+                        "Error: '%s' received an unknown type", \
+                        #name \
+                    ); \
+                }; \
             } \
         ); \
     }

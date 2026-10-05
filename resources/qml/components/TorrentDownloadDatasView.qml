@@ -1,28 +1,28 @@
 
 import QtQuick
-import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Layouts
 
 ListView {
 
     id: root
 
-    property var selectedSearchResults: [];
+    property var selectedTorrentDownloadDatas: [];
 
-    function toggleSelection(torrentSearchResult) {
+    function toggleSelection(torrentDownloadData) {
 
-        const alreadySelected = selectedSearchResults.some(
-            result => result.magnetUrl === torrentSearchResult.magnetUrl
+        const alreadySelected = selectedTorrentDownloadDatas.some(
+            result => result.magnetUrl === torrentDownloadData.magnetUrl
         );
 
         if (alreadySelected) {
-            selectedSearchResults = selectedSearchResults.filter(
-                result => result.magnetUrl !== torrentSearchResult.magnetUrl
+            selectedTorrentDownloadDatas = selectedTorrentDownloadDatas.filter(
+                result => result.magnetUrl !== torrentDownloadData.magnetUrl
             );
         } else {
-            selectedSearchResults = [
-                ...selectedSearchResults,
-                torrentSearchResult
+            selectedTorrentDownloadDatas = [
+                ...selectedTorrentDownloadDatas,
+                torrentDownloadData
             ];
         };
 
@@ -74,8 +74,8 @@ ListView {
         height: 48
 
         property bool selected: {
-            for (const result of root.selectedSearchResults) {
-                if (result.magnetUrl === torrentSearchResult.magnetUrl) {
+            for (const downloadData of root.selectedTorrentDownloadDatas) {
+                if (downloadData.magnetUrl === torrentDownloadData.magnetUrl) {
                     return true;
                 };
             };
@@ -86,28 +86,45 @@ ListView {
             ? "#cce5ff"
             : (index % 2 === 0 ? "#ffffff" : "#f7f7f7")
 
-        RowLayout {
+        ColumnLayout {
 
             anchors.fill: parent
             anchors.leftMargin: 12
             anchors.rightMargin: 12
-            spacing: 16
 
-            Label {
+            RowLayout {
+
                 Layout.fillWidth: true
-                text: torrentSearchResult.name
-                elide: Text.ElideRight
+                Layout.fillHeight: true
+                spacing: 16
+
+                Label {
+                    Layout.fillWidth: true
+                    text: torrentDownloadData.name
+                    elide: Text.ElideRight
+                }
+
+                Label {
+                    Layout.preferredWidth: 100
+                    text: torrentDownloadData.sizeBytes
+                }
+
+                Label {
+                    Layout.preferredWidth: 80
+                    horizontalAlignment: Text.AlignRight
+                    text: torrentDownloadData.seeders + torrentDownloadData.leechers
+                }
+
             }
 
-            Label {
-                Layout.preferredWidth: 100
-                text: torrentSearchResult.sizeBytes
-            }
+            ProgressBar {
 
-            Label {
-                Layout.preferredWidth: 80
-                horizontalAlignment: Text.AlignRight
-                text: torrentSearchResult.seeders + torrentSearchResult.leechers
+                Layout.fillWidth: true
+
+                from: 0.0
+                to: 1.0
+                value: torrentDownloadData.progress
+                indeterminate: false
             }
 
         }
@@ -121,8 +138,8 @@ ListView {
 
             onClicked: {
                 console.log("calling root.toggleSelection with");
-                console.log(`torrentSearchResult:\n${torrentSearchResult}`);
-                root.toggleSelection(torrentSearchResult);
+                console.log(`torrentDownloadData:\n${torrentDownloadData}`);
+                root.toggleSelection(torrentDownloadData);
             }
 
         }

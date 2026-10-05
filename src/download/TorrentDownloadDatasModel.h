@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "search/TorrentSearchResults.h"
+#include "download/TorrentDownloadDatas.h"
 
 #include <QAbstractListModel>
 class QVariant;
@@ -9,23 +9,23 @@ class QModelIndex;
 // class QHash;
 class QByteArray;
 
-class TorrentSearchResultsModel : public QAbstractListModel {
+class TorrentDownloadDatasModel : public QAbstractListModel {
 
     Q_OBJECT
 
     private:
 
-        TorrentSearchResults torrentSearchResults;
+        TorrentDownloadDatas torrentDownloadDatas;
 
     protected:
 
     public:
 
         enum Roles {
-            TorrentSearchResultRole = Qt::UserRole + 1
+            TorrentDownloadDataRole = Qt::UserRole + 1
         };
 
-        explicit TorrentSearchResultsModel(
+        explicit TorrentDownloadDatasModel(
             QObject *parent = nullptr
         );
 
@@ -38,8 +38,8 @@ class TorrentSearchResultsModel : public QAbstractListModel {
 
         QHash<int, QByteArray> roleNames() const override;
 
-        void setResults(
-            const TorrentSearchResults results
+        void setTorrentDownloadDatas(
+            const TorrentDownloadDatas torrentDownloadDatasP
         );
 
 };

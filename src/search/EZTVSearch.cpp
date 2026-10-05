@@ -29,6 +29,12 @@ TorrentSearchResults EZTVSearch::parseResponse(
     return {};
 };
 
+bool EZTVSearch::isUrlValid(
+    const QString& url
+) const {
+    return true;
+};
+
 QString EZTVSearch::getName() const {
     return "EZTVSearch";
 };

@@ -1,8 +1,8 @@
 
 import QtQuick
-import QtQuick.Layouts
 import QtQuick.Controls
 
+import "components"
 import "pages"
 
 ApplicationWindow {
@@ -12,11 +12,24 @@ ApplicationWindow {
     height: 600
     title: "TorrentSearch"
 
+    AppHeader {
+        id: header
+        stackView: stackView
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+    }
+
     StackView {
 
         id: stackView
 
-        anchors.fill: parent
+        anchors {
+                top: header.bottom
+                left: parent.left
+                right: parent.right
+                bottom: parent.bottom
+            }
 
         initialItem: SearchPage {}
 

@@ -1,5 +1,6 @@
 
 #include "search/PirateBaySearch.h"
+#include "helpers/helpers.h"
 
 #include <QUrl>
 #include <QUrlQuery>
@@ -8,10 +9,10 @@
 #include <QJsonObject>
 #include <Qstring>
 
-#define USE_MOCK_RESPONSE 1
+#define MOCK_RESPONSE 0
 
-#if USE_MOCK_RESPONSE
-    #include <QFile>
+#if MOCK_RESPONSE
+    #include "search/PIRATE_BAY_SEARCH_RESPONSE.h"
 #endif
 
 PirateBaySearch::PirateBaySearch(
@@ -34,7 +35,7 @@ QUrl PirateBaySearch::createSearchUrl(
 
     url.setQuery(parameters);
 
-    return url;
+    return helpers::encodeMagnetUrl(url);
 
 };
 
@@ -46,15 +47,10 @@ TorrentSearchResults PirateBaySearch::parseResponse(
 
     QJsonDocument document = QJsonDocument::fromJson(response);
 
-    #if USE_MOCK_RESPONSE
-
-        QFile file("PirateBaySearchResponse.json");
-
-        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            document = QJsonDocument::fromJson(file.readAll());
-        };
-
+    #if MOCK_RESPONSE
+        document = QJsonDocument::fromJson(PIRATE_BAY_SEARCH_RESPONSE);
     #endif
+    #undef MOCK_RESPONSE
 
     if (!document.isArray()) {
         return results;
@@ -70,9 +66,10 @@ TorrentSearchResults PirateBaySearch::parseResponse(
 
         result.name = object["name"].toString();
         result.infoHash = object["info_hash"].toString();
+        result.leechers = object["leechers"].toString().toInt();
+        result.seeders = object["seeders"].toString().toInt();
         result.sizeBytes = object["size"].toString().toLongLong();
-        result.seeders = object["seeders"].toInt();
-        result.leechers = object["leechers"].toInt();
+        result.numberOfFiles = object["num_files"].toString().toInt();
 
         result.magnetUrl = QString("magnet:?xt=urn:btih:%1").arg(result.infoHash);
 
@@ -81,6 +78,24 @@ TorrentSearchResults PirateBaySearch::parseResponse(
     };
 
     return results;
+
+};
+
+bool PirateBaySearch::isUrlValid(
+    const QString& url
+) const {
+
+    const QUrl qUrl(url);
+    const QUrlQuery query(qUrl);
+
+    return (
+        qUrl.isValid()
+        && qUrl.scheme() == "https"
+        && qUrl.host() == "apibay.org"
+        && qUrl.path() == "/q.php"
+        && query.hasQueryItem("q")
+        && query.hasQueryItem("cat")
+    );
 
 };
 

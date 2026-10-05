@@ -24,6 +24,10 @@ class PirateBaySearch : public TorrentSearch {
             QObject* parent = nullptr
         );
 
+        bool isUrlValid(
+            const QString& url
+        ) const override;
+
         QString getName() const override;
 
 };

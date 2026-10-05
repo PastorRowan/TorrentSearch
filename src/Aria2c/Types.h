@@ -1,4 +1,7 @@
+
 #pragma once
+
+#include "Aria2c/Aria2cRpc.h"
 
 #include <QByteArray>
 #include <QJsonArray>
@@ -8,6 +11,7 @@
 #include <QStringList>
 #include <QVector>
 #include <optional>
+#include <concepts>
 
 // ================================================================
 // Aria2Error
@@ -668,7 +672,7 @@ struct Aria2SaveSessionResponse {
 // name (e.g. "aria2.getVersion"); `params` is the already-serialized
 // QJsonArray from some Params::toQJsonArray().
 struct SystemMulticallMethod {
-    QString methodName;
+    RpcMethod method;
     QJsonArray params;
 };
 
@@ -722,3 +726,56 @@ struct SystemListNotificationsResponse {
 
     static SystemListNotificationsResponse fromQJsonValue(const QJsonValue& value);
 };
+
+
+// RPC method parameters concept
+// Checks whether each RPC method parameter has toQJsonArray
+template<typename T>
+concept RpcParams = requires(const T& params) {
+    { params.toQJsonArray() } -> std::same_as<QJsonArray>;
+};
+
+// RPC method response concept
+// Checks whether each RPC method response has fromQJsonValue
+template<typename T>
+concept RpcResponse = requires(const QJsonValue& qJsonValue) {
+    { T::fromQJsonValue(qJsonValue) } -> std::same_as<T>;
+};
+
+// ============================================================
+// Compile-time validation of every RPC method
+// ============================================================
+
+// Methods WITH parameters
+#define TEST_RPC_PARAMS_Y(name) \
+    static_assert( \
+        RpcParams<name##Params>, \
+        #name "Params must satisfy RpcParams" \
+    );
+
+// Methods WITHOUT parameters
+#define TEST_RPC_PARAMS_N(name)
+
+// Select Y/N version
+#define TEST_RPC_PARAMS(name, hasParams) \
+    TEST_RPC_PARAMS_##hasParams(name)
+
+// Every RPC method must have a valid response type.
+#define TEST_RPC_RESPONSE(name) \
+    static_assert( \
+        RpcResponse<name##Response>, \
+        #name "Response must satisfy RpcResponse" \
+    );
+
+// Run the tests against every entry in RPC_METHODS.
+#define X(function, method, name, hasParams) \
+    TEST_RPC_PARAMS(name, hasParams) \
+    TEST_RPC_RESPONSE(name)
+
+RPC_METHODS
+
+#undef X
+#undef TEST_RPC_PARAMS
+#undef TEST_RPC_PARAMS_Y
+#undef TEST_RPC_PARAMS_N
+#undef TEST_RPC_RESPONSE

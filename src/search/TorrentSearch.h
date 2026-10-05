@@ -1,13 +1,14 @@
 
 #pragma once
 
+#include "search/TorrentSearchResults.h"
+
 #include <QObject>
 class QNetworkAccessManager;
 class QNetworkReply;
 class QString;
 class QUrl;
 class QByteArray;
-#include "search/TorrentSearchResults.h"
 
 class TorrentSearch : public QObject {
 
@@ -62,6 +63,10 @@ class TorrentSearch : public QObject {
         );
 
         virtual QString getName() const = 0;
+
+        virtual bool isUrlValid(
+            const QString& url
+        ) const = 0;
 
     signals:
 

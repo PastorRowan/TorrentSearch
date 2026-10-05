@@ -1,5 +1,6 @@
 
 #include "Aria2c/Types.h"
+#include "helpers/helpers.h"
 
 // ================================================================
 // Shared helper structs
@@ -314,6 +315,14 @@ QJsonArray Aria2TellStatusParams::toQJsonArray() const {
 };
 
 Aria2TellStatusResponse Aria2TellStatusResponse::fromQJsonValue(const QJsonValue& value) {
+
+    #define LOG_Aria2TellStatusResponse_QJSON_VALUE 0
+
+    #if LOG_Aria2TellStatusResponse_QJSON_VALUE
+        qDebug().noquote() << "Aria2TellStatusResponse::fromQJsonValue QJsonValue:\n" << helpers::prettyQJson(value);
+    #endif
+    #undef LOG_Aria2TellStatusResponse_QJSON_VALUE
+
     Aria2TellStatusResponse result;
     const QJsonObject obj = value.toObject();
 
@@ -516,6 +525,10 @@ Aria2TellStoppedResponse Aria2TellStoppedResponse::fromQJsonValue(const QJsonVal
 // ================================================================
 // Aria2ChangePosition
 // ================================================================
+
+unsigned int Aria2ChangePositionParams::howToUnsignedInt(const How h) {
+    return static_cast<unsigned int>(h);
+};
 
 QJsonArray Aria2ChangePositionParams::toQJsonArray() const {
     QJsonArray array;
@@ -755,8 +768,8 @@ QJsonArray SystemMulticallParams::toQJsonArray() const {
     QJsonArray array;
     for (const SystemMulticallMethod& method : methods) {
         QJsonObject entry;
-        entry[QStringLiteral("methodName")] = method.methodName;
-        entry[QStringLiteral("params")]     = method.params;
+        entry["methodName"] = rpcMethodEnumToRpcMethodName(method.method);
+        entry["params"]     = method.params;
         array.append(entry);
     };
     return array;
@@ -777,20 +790,16 @@ SystemMulticallResponse SystemMulticallResponse::fromQJsonValue(const QJsonValue
     for (const QJsonValue& entryValue : array) {
         Entry entry;
 
-        // The entry can be either a one-item array or a fault struct.
         if (entryValue.isArray()) {
-            const QJsonArray inner = entryValue.toArray();
-            if (!inner.isEmpty()) {
-                entry.value = inner.at(0);
-            }
+            entry.value = entryValue;
             entry.isFault = false;
         } else if (entryValue.isObject()) {
             const QJsonObject obj = entryValue.toObject();
-            if (obj.contains(QStringLiteral("fault"))) {
-                const QJsonObject fault = obj.value(QStringLiteral("fault")).toObject();
+            if (obj.contains("fault")) {
+                const QJsonObject fault = obj.value("fault").toObject();
                 entry.isFault      = true;
-                entry.faultCode    = fault.value(QStringLiteral("code")).toInt();
-                entry.faultMessage = fault.value(QStringLiteral("message")).toString();
+                entry.faultCode    = fault.value("code").toInt();
+                entry.faultMessage = fault.value("message").toString();
                 entry.value        = fault;
             };
         };

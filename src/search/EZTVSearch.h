@@ -24,6 +24,10 @@ class EZTVSearch : public TorrentSearch {
             QObject* parent
         );
 
+        bool isUrlValid(
+            const QString& url
+        ) const override;
+
         QString getName() const override;
 
 };

@@ -9,16 +9,17 @@ QString TorrentDownloadData::statusToQString() const {
 
 QString TorrentDownloadData::toQString() const {
     return
-        "name: " + name +
-        "infoHash: " + infoHash +
-        "leechers: " + QString::number(leechers) +
-        "seeders: " + QString::number(seeders) +
-        "sizeBytes: " + QString::number(sizeBytes) +
-        "numberOfFiles: " + QString::number(numberOfFiles) +
-        "magnetUrl: " + magnetUrl +
-        "torrentUrl: " + torrentUrl +
-        "status: " + statusToQString() +
-        "progress: " + QString::number(progress)
+        QString("TorrentDownloadData:") + "\n" +
+        "  name: " + name + "\n" +
+        "  infoHash: " + infoHash + "\n" +
+        "  leechers: " + QString::number(leechers) + "\n" +
+        "  seeders: " + QString::number(seeders) + "\n" +
+        "  sizeBytes: " + QString::number(sizeBytes) + "\n" +
+        "  numberOfFiles: " + QString::number(numberOfFiles) + "\n" +
+        "  magnetUrl: " + magnetUrl + "\n" +
+        "  torrentUrl: " + torrentUrl + "\n" +
+        "  status: " + statusToQString() + "\n" +
+        "  progress: " + QString::number(progress)
     ;
 };
 

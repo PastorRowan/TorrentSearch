@@ -11,6 +11,8 @@ Page {
 
     title: "Search"
 
+    property var selectedSearchResults: torrentSearchResultsView.selectedSearchResults
+
     ColumnLayout {
 
         anchors.fill: parent
@@ -48,6 +50,47 @@ Page {
 
     }
 
+    RoundButton {
+
+        id: downloadButton
+
+        anchors {
+            right: parent.right
+            bottom: parent.bottom
+            margins: 24
+        }
+
+        width: 56
+        height: 56
+
+        text: "\u2B07"
+
+        font.pixelSize: 28
+
+        onClicked: {
+            if (root.selectedSearchResults.length >= 1) {
+                downloadDialog.open();
+            } else {
+                noSelectionDialog.open()
+            };
+        }
+
+    }
+
+    Dialog {
+
+        id: noSelectionDialog
+
+        title: "No torrent selected"
+        modal: true
+        width: 400
+
+        anchors.centerIn: parent
+
+        standardButtons: Dialog.Ok
+
+    }
+
     Dialog {
 
         id: downloadDialog
@@ -56,6 +99,7 @@ Page {
         modal: true
 
         width: 400
+        height: 500
 
         anchors.centerIn: parent
 
@@ -63,24 +107,54 @@ Page {
 
         contentItem: ColumnLayout {
 
+            anchors.fill: parent
+            spacing: 10
+
             Label {
                 Layout.fillWidth: true
-                text: "This is a label"
+                Layout.preferredHeight: 20
+                Layout.topMargin: 70
+                text: "The following torrents will be downloaded:"
                 wrapMode: Text.Wrap
             }
 
-            Label {
+            ListView {
+
+                id: torrentList
+
                 Layout.fillWidth: true
-                text: "Download this torrent?"
+                Layout.fillHeight: true
+
+                clip: true
+
+                model: root.selectedSearchResults
+
+                delegate: Label {
+
+                    width: ListView.view.width
+                    height: 40
+                    text: "• " + modelData.name
+
+                    Component.onCompleted: {
+                        console.log("modelData: ", modelData);
+                    }
+
+                }
+
             }
 
         }
 
-        /*
         onAccepted: {
-            torrentDownloadManager.download(root.selectedMagnetUrl)
+            const magnetUrls = root.selectedSearchResults.map(
+                result => result.magnetUrl
+            )
+            torrentDownloadManager.addDownload(magnetUrls)
         }
-        */
+
+        onRejected: {
+            console.log("Download rejected")
+        }
 
     }
 

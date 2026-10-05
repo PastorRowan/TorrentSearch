@@ -18,13 +18,16 @@ qt_standard_project_setup(REQUIRES 6.5)
 set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(HEADERS
     "${INCLUDE_DIR}/Aria2c/Aria2c.h"
+    "${INCLUDE_DIR}/Aria2c/Aria2cRpc.h"
     "${INCLUDE_DIR}/Aria2c/Types.h"
     "${INCLUDE_DIR}/conversions/conversions.h"
-    "${INCLUDE_DIR}/download/TorrentDownload.h"
     "${INCLUDE_DIR}/download/TorrentDownloadData.h"
+    "${INCLUDE_DIR}/download/TorrentDownloadDatas.h"
+    "${INCLUDE_DIR}/download/TorrentDownloadDatasModel.h"
     "${INCLUDE_DIR}/download/TorrentDownloadManager.h"
-    "${INCLUDE_DIR}/download/TorrentDownloads.h"
+    "${INCLUDE_DIR}/helpers/helpers.h"
     "${INCLUDE_DIR}/search/EZTVSearch.h"
+    "${INCLUDE_DIR}/search/PIRATE_BAY_SEARCH_RESPONSE.h"
     "${INCLUDE_DIR}/search/PirateBaySearch.h"
     "${INCLUDE_DIR}/search/TorrentSearch.h"
     "${INCLUDE_DIR}/search/TorrentSearchManager.h"
@@ -36,12 +39,14 @@ set(HEADERS
 set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(SOURCES
     "${SRC_DIR}/Aria2c/Aria2c.cpp"
+    "${SRC_DIR}/Aria2c/Aria2cRpc.cpp"
     "${SRC_DIR}/Aria2c/Types.cpp"
     "${SRC_DIR}/conversions/conversions.cpp"
-    "${SRC_DIR}/download/TorrentDownload.cpp"
     "${SRC_DIR}/download/TorrentDownloadData.cpp"
+    "${SRC_DIR}/download/TorrentDownloadDatas.cpp"
+    "${SRC_DIR}/download/TorrentDownloadDatasModel.cpp"
     "${SRC_DIR}/download/TorrentDownloadManager.cpp"
-    "${SRC_DIR}/download/TorrentDownloads.cpp"
+    "${SRC_DIR}/helpers/helpers.cpp"
     "${SRC_DIR}/search/EZTVSearch.cpp"
     "${SRC_DIR}/search/PirateBaySearch.cpp"
     "${SRC_DIR}/search/TorrentSearch.cpp"
@@ -63,8 +68,12 @@ qt_add_qml_module(TorrentSearch
     VERSION 1.0
 
     QML_FILES
+        resources/qml/components/AppHeader.qml
+        resources/qml/components/TorrentDownloadDatasView.qml
         resources/qml/components/TorrentSearchResultsView.qml
+        resources/qml/pages/DownloadsPage.qml
         resources/qml/pages/SearchPage.qml
+        resources/qml/pages/SettingsPage.qml
         resources/qml/Main.qml
 
     # RESOURCES
@@ -87,7 +96,13 @@ target_link_libraries(TorrentSearch
 
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/bin/windows/aria2c.exe"
-    "${CMAKE_CURRENT_BINARY_DIR}/windows/aria2c.exe"
+    "${CMAKE_CURRENT_BINARY_DIR}/bin/windows/aria2c.exe"
+    COPYONLY
+)
+
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/bin/windows/aria2c.exe"
+    "${CMAKE_CURRENT_BINARY_DIR}/bin/windows/aria2c.exe"
     COPYONLY
 )
 

@@ -1,6 +1,7 @@
 
 #include "search/TorrentSearchResultsModel.h"
 #include "search/TorrentSearchResults.h"
+
 #include <QVariant>
 #include <QModelIndex>
 #include <QHash>

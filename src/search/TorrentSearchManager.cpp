@@ -1,5 +1,6 @@
 
 #include "search/TorrentSearchManager.h"
+
 #include <QNetworkAccessManager>
 #include <QString>
 #include <QDebug>
@@ -73,9 +74,17 @@ void TorrentSearchManager::providerSearchCompleted(
     const TorrentSearchResults& providerSearchResults
 ) {
 
+    #define LOG_PROVIDER_SEARCH_RESULTS 0
+
     qDebug().noquote()
         << "TorrentSearchManager::providerSearchCompleted slot called with\n"
-        << "searchId: " << searchId << '\n'
+        << "searchId: " << searchId
+        #if LOG_PROVIDER_SEARCH_RESULTS
+        << "\n"
+        << "providerSearchResults:\n"
+        << providerSearchResults.toQString()
+        #endif
+        #undef LOG_PROVIDER_SEARCH_RESULTS
     ;
 
     if (searchId != getSearchId()) {

@@ -36,4 +36,4 @@ struct TorrentSearchResult  {
 
 };
 
-Q_DECLARE_METATYPE(TorrentSearchResult)
+Q_DECLARE_METATYPE(TorrentSearchResult);

@@ -2,12 +2,14 @@
 #pragma once
 
 #include "Aria2c/Aria2c.h"
-#include "download/TorrentDownloads.h"
+#include "download/TorrentDownloadDatas.h"
 
 #include <QObject>
 #include <QString>
+#include <QDir>
 #include <QStandardPaths>
 #include <QTimer>
+#include <QStringList>
 
 class TorrentDownloadManager : public QObject {
 
@@ -15,20 +17,25 @@ class TorrentDownloadManager : public QObject {
 
     private:
 
-        QString downloadDirectory = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation) + "/TorrentSearch";
+        QString downloadDirectory =
+            QDir(
+                QStandardPaths::writableLocation(
+                    QStandardPaths::DownloadLocation
+                )
+            ).filePath("TorrentSearch");
 
         Aria2c* aria2c;
 
         QTimer* statusTimer;
 
-        TorrentDownloads<TorrentDownload*> torrentDownloads;
+        TorrentDownloadDatas torrentDownloadDatas;
 
         void pollDownloadStatuses();
 
     // private slots:
 
         void onAria2cTellStatusResponses(
-            const QVector<Aria2TellStatusResponse> responses
+            const QVector<Aria2TellStatusResponse>& responses
         );
 
         void onAria2cStarted();
@@ -45,8 +52,8 @@ class TorrentDownloadManager : public QObject {
 
         QString toQString() const;
 
-        void addDownload(
-            TorrentDownloadData data
+        Q_INVOKABLE void addDownload(
+            const QStringList& magnetUrls
         );
 
         void resumeDownload(
@@ -63,12 +70,8 @@ class TorrentDownloadManager : public QObject {
 
     signals:
 
-        void downloadUpdated(
-            const QString& infoHash
-        );
-
-        void aria2cTellStatusResponses(
-            const QVector<Aria2TellStatusResponse> responses
+        void downloadDatasChanged(
+            const TorrentDownloadDatas& torrentDownloads
         );
 
 };

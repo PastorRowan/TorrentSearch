@@ -1,10 +1,17 @@
 
 #include "search/TorrentSearch.h"
+
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QString>
 #include <QUrl>
 #include <QDebug>
+
+#define LOG_SEARCH_RESULTS 0
+
+#if LOG_SEARCH_RESULTS
+    #include "helpers/helpers.h"
+#endif
 
 TorrentSearch::TorrentSearch(
     QNetworkAccessManager* networkAccessManagerP,
@@ -66,11 +73,15 @@ void TorrentSearch::onNetworkReplyFinished(
         << "TorrentSearch::onNetworkReplyFinished called with\n"
         << "searchId: " << searchId << "\n"
         << "reply:\n"
-        << "request url: " << reply->request().url().toString() << "\n"
+        << "request url: " << reply->request().url().toString(QUrl::FullyEncoded) << "\n"
         << "HTTP status: " << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) << "\n"
         << "Error: " << reply->error() << "\n"
-        << "Error string: " << reply->errorString() // << "\n"
-        // << "response:\n" << reply->readAll()
+        << "Error string: " << reply->errorString()
+        #if LOG_SEARCH_RESULTS
+        << "\n"
+        << "response:\n" << helpers::fromByteArrayToPrettyQJson(reply->readAll())
+        #endif
+        #undef LOG_SEARCH_RESULTS
     ;
 
     if (reply != networkReply) {
@@ -91,17 +102,10 @@ void TorrentSearch::onNetworkReplyFinished(
     emit searchCompleted(searchId, results);
 
 };
-
 void TorrentSearch::search(
     const unsigned int searchId,
     const QString& query
 ) {
-
-    qDebug().noquote()
-        << "torrentSearch '" << getName() << "' called with\n"
-        << "searchId: " << searchId << "\n"
-        << "query: " << query
-    ;
 
     cancelSearch();
 
